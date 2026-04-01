@@ -20,7 +20,12 @@ def upgrade() -> None:
         "practices",
         sa.Column("config", postgresql.JSON(astext_type=sa.Text()), nullable=True),
     )
+    op.add_column(
+        "practices",
+        sa.Column("staff_email", sa.String(255), nullable=True),
+    )
 
 
 def downgrade() -> None:
+    op.drop_column("practices", "staff_email")
     op.drop_column("practices", "config")

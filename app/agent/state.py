@@ -108,14 +108,18 @@ class BookingIntent:
 class ConversationContext:
     """
     In-memory state for one call. Lives for the duration of the LiveKit session.
-    Serialized to PostgreSQL at call end.
+    Serialized to PostgreSQL at call end via POST /internal/finalize_call.
     """
 
     practice_id: str
     practice_name: str
-    practice_state: str  # US state code — drives HIPAA disclosure wording
+    practice_state: str       # US state code — drives HIPAA disclosure wording
+    practice_timezone: str    # IANA timezone — for after-hours check
     call_sid: str
     patient_phone: str
+    escalation_number: str = ""   # where to warm-transfer + where to SMS booking requests
+    staff_email: str | None = None  # where to email booking notifications
+    ehr_adapter: str = "notify"     # which EHR adapter to use at call end
     started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     state: ConversationState = ConversationState.GREETING
     booking: BookingIntent = field(default_factory=BookingIntent)

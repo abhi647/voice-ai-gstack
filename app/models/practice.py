@@ -41,6 +41,7 @@ class Practice(Base):
     state: Mapped[str] = mapped_column(String(2), default="NY")
     stripe_customer_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     stripe_subscription_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    staff_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     stt_provider: Mapped[str] = mapped_column(String(50), default="deepgram")
     tts_provider: Mapped[str] = mapped_column(String(50), default="elevenlabs")
     config: Mapped[dict | None] = mapped_column(JSON, nullable=True)

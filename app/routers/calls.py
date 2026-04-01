@@ -55,6 +55,8 @@ async def inbound_call(
         "practice_name": practice.name,
         "practice_state": practice.state,
         "practice_timezone": practice.timezone,
+        "escalation_number": practice.escalation_number,
+        "staff_email": practice.staff_email,
         "call_sid": CallSid,
         "patient_phone": From,
         "stt_provider": practice.stt_provider,

@@ -34,5 +34,6 @@ def make_practice(**kwargs):
     p.is_active = kwargs.get("is_active", True)
     p.stt_provider = kwargs.get("stt_provider", "deepgram")
     p.tts_provider = kwargs.get("tts_provider", "elevenlabs")
+    p.staff_email = kwargs.get("staff_email", "front-desk@sunrise.com")
     p.get_config.return_value = kwargs.get("config", PracticeConfig())
     return p

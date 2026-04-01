@@ -49,6 +49,8 @@ async def entrypoint(ctx: JobContext) -> None:
     practice_timezone = metadata.get("practice_timezone", "America/New_York")
     call_sid = metadata.get("call_sid", "unknown")
     patient_phone = metadata.get("patient_phone", "unknown")
+    escalation_number = metadata.get("escalation_number", "")
+    staff_email = metadata.get("staff_email")
     stt_provider = metadata.get("stt_provider", "deepgram")
     tts_provider = metadata.get("tts_provider", "elevenlabs")
 
@@ -61,8 +63,12 @@ async def entrypoint(ctx: JobContext) -> None:
         practice_id=practice_id,
         practice_name=practice_name,
         practice_state=practice_state,
+        practice_timezone=practice_timezone,
         call_sid=call_sid,
         patient_phone=patient_phone,
+        escalation_number=escalation_number,
+        staff_email=staff_email,
+        ehr_adapter=config.ehr_adapter,
     )
     conv.booking.patient_phone = patient_phone
 
@@ -218,12 +224,18 @@ async def _finalize_call(conv: ConversationContext, twilio_recording_url: str | 
     payload = {
         "call_sid": conv.call_sid,
         "practice_id": conv.practice_id,
+        "practice_name": conv.practice_name,
+        "practice_timezone": conv.practice_timezone,
+        "escalation_number": conv.escalation_number,
+        "staff_email": conv.staff_email,
+        "ehr_adapter": conv.ehr_adapter,
         "patient_phone": conv.patient_phone,
         "started_at": conv.started_at.isoformat(),
         "disposition": _disposition(conv),
         "patient_name": conv.booking.patient_name,
         "requested_time": conv.booking.requested_time,
         "service_type": conv.booking.service_type,
+        "notes": conv.booking.notes,
         "transcript": conv.full_transcript(),
         "twilio_recording_url": twilio_recording_url,
     }

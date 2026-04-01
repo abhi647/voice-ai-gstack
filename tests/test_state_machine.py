@@ -37,6 +37,7 @@ def make_ctx(**kwargs) -> ConversationContext:
         practice_id=kwargs.get("practice_id", "test-practice"),
         practice_name=kwargs.get("practice_name", "Sunrise Dental"),
         practice_state=kwargs.get("practice_state", "NY"),
+        practice_timezone=kwargs.get("practice_timezone", "America/New_York"),
         call_sid=kwargs.get("call_sid", "CA123"),
         patient_phone=kwargs.get("patient_phone", "+15550000000"),
     )

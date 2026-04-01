@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     s3_bucket: str = ""
     environment: str = "development"
     secret_key: str = "change-me-in-production"
+    # Outbound notifications (NotifyAdapter)
+    sendgrid_api_key: str = ""
+    sendgrid_from_email: str = "noreply@yourvoiceai.com"
+    twilio_sms_from: str = ""  # E.164 number to send SMS from
 
 
 settings = Settings()

@@ -30,6 +30,7 @@ from twilio.rest import Client
 
 from app.config import settings
 from app.database import get_db
+from app.ehr import BookingRequest, get_ehr_adapter
 from app.middleware.audit import audit_log
 from app.models.call import Call
 from app.models.practice import Practice
@@ -165,12 +166,18 @@ async def _handle_unanswered_escalation(req: EscalationRequest) -> None:
 class FinalizeCallRequest(BaseModel):
     call_sid: str
     practice_id: str
+    practice_name: str = ""
+    practice_timezone: str = "America/New_York"
+    escalation_number: str = ""   # practice's phone — for EHR adapter SMS
+    staff_email: str | None = None  # practice's email — for EHR adapter email
+    ehr_adapter: str = "notify"   # which EHR adapter to use
     patient_phone: str
     started_at: str  # ISO 8601 UTC datetime string
     disposition: str  # BOOKING_CAPTURED | ESCALATED | ESCALATED_UNANSWERED | HUNG_UP | FAQ_ONLY
     patient_name: str | None = None
     requested_time: str | None = None
     service_type: str | None = None
+    notes: str | None = None
     transcript: str | None = None
     twilio_recording_url: str | None = None  # if set, fetch from Twilio and upload to S3
 
@@ -252,5 +259,33 @@ async def finalize_call(req: FinalizeCallRequest, db: AsyncSession = Depends(get
 
     await db.commit()
 
+    # For booking captures, notify practice staff via the configured EHR adapter.
+    # This runs after the DB commit — a notification failure never rolls back the call record.
+    booking_result = None
+    if req.disposition == "BOOKING_CAPTURED":
+        adapter = get_ehr_adapter(req.ehr_adapter)
+        booking_req = BookingRequest(
+            practice_id=req.practice_id,
+            practice_name=req.practice_name,
+            practice_timezone=req.practice_timezone,
+            escalation_number=req.escalation_number,
+            staff_email=req.staff_email,
+            patient_name=req.patient_name,
+            patient_phone=req.patient_phone,
+            service_type=req.service_type,
+            requested_time=req.requested_time,
+            notes=req.notes,
+            call_sid=req.call_sid,
+        )
+        booking_result = await adapter.submit_booking(booking_req)
+        logger.info(
+            f"EHR adapter '{req.ehr_adapter}' result for {req.call_sid}: "
+            f"success={booking_result.success}, {booking_result.message}"
+        )
+
     logger.info(f"Call {req.call_sid} finalized — id={call.id}, disposition={req.disposition}")
-    return {"status": "ok", "call_id": str(call.id)}
+    return {
+        "status": "ok",
+        "call_id": str(call.id),
+        "notification": booking_result.message if booking_result else None,
+    }
