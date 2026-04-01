@@ -20,12 +20,20 @@ If the escalation number doesn't answer:
 """
 
 import logging
+from datetime import datetime, timezone
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from twilio.rest import Client
 
 from app.config import settings
+from app.database import get_db
+from app.middleware.audit import audit_log
+from app.models.call import Call
+from app.models.practice import Practice
+from app.storage import s3
 
 logger = logging.getLogger(__name__)
 
@@ -147,3 +155,102 @@ async def _handle_unanswered_escalation(req: EscalationRequest) -> None:
         },
     )
     # TODO(v0.2): send SMS to patient + email to practice
+
+
+# ---------------------------------------------------------------------------
+# Finalize call — called by the LiveKit agent when the session ends
+# ---------------------------------------------------------------------------
+
+
+class FinalizeCallRequest(BaseModel):
+    call_sid: str
+    practice_id: str
+    patient_phone: str
+    started_at: str  # ISO 8601 UTC datetime string
+    disposition: str  # BOOKING_CAPTURED | ESCALATED | ESCALATED_UNANSWERED | HUNG_UP | FAQ_ONLY
+    patient_name: str | None = None
+    requested_time: str | None = None
+    service_type: str | None = None
+    transcript: str | None = None
+    twilio_recording_url: str | None = None  # if set, fetch from Twilio and upload to S3
+
+
+@router.post("/finalize_call")
+async def finalize_call(req: FinalizeCallRequest, db: AsyncSession = Depends(get_db)) -> dict:
+    """
+    Persist a completed call to PostgreSQL and S3.
+
+    Called by the LiveKit agent at session end.
+    Idempotent on call_sid — if the record already exists (e.g. duplicate delivery),
+    returns the existing call_id.
+    """
+    logger.info(
+        "Finalizing call",
+        extra={
+            "call_sid": req.call_sid,
+            "practice_id": req.practice_id,
+            "disposition": req.disposition,
+        },
+    )
+
+    # Idempotency check — don't double-write if agent delivers twice
+    existing = await db.scalar(select(Call).where(Call.twilio_call_sid == req.call_sid))
+    if existing:
+        logger.info(f"Call {req.call_sid} already finalized — skipping")
+        return {"status": "already_finalized", "call_id": str(existing.id)}
+
+    # Upload transcript to S3 before writing the DB row
+    transcript_key = None
+    if req.transcript:
+        try:
+            transcript_key = s3.upload_transcript(req.practice_id, req.call_sid, req.transcript)
+        except Exception as e:
+            logger.error(f"Transcript S3 upload failed: {e} — proceeding without S3 key")
+
+    # Upload recording from Twilio to S3 (if URL provided)
+    audio_key = None
+    if req.twilio_recording_url:
+        try:
+            audio_key = s3.upload_recording_from_url(
+                req.practice_id, req.call_sid, req.twilio_recording_url
+            )
+        except Exception as e:
+            logger.error(f"Recording S3 upload failed: {e} — proceeding without audio")
+
+    # Parse started_at
+    try:
+        started_at = datetime.fromisoformat(req.started_at.replace("Z", "+00:00"))
+    except ValueError:
+        started_at = datetime.now(timezone.utc)
+
+    # Write Call record
+    call = Call(
+        twilio_call_sid=req.call_sid,
+        practice_id=req.practice_id,
+        patient_phone=req.patient_phone,
+        started_at=started_at,
+        ended_at=datetime.now(timezone.utc),
+        disposition=req.disposition,
+        patient_name=req.patient_name,
+        requested_time=req.requested_time,
+        service_type=req.service_type,
+        transcript=req.transcript,
+        transcript_s3_key=transcript_key,
+        audio_s3_key=audio_key,
+    )
+    db.add(call)
+    await db.flush()  # get the auto-generated call.id before commit
+
+    # HIPAA audit log
+    await audit_log(
+        db=db,
+        practice_id=req.practice_id,
+        event_type="call_finalized",
+        actor="livekit_agent",
+        call_id=call.id,
+    )
+
+    await db.commit()
+
+    logger.info(f"Call {req.call_sid} finalized — id={call.id}, disposition={req.disposition}")
+    return {"status": "ok", "call_id": str(call.id)}

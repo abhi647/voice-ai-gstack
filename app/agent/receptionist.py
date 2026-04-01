@@ -194,24 +194,47 @@ def _build_escalation_summary(conv: ConversationContext) -> str:
     return ", ".join(parts) + "."
 
 
-async def _finalize_call(conv: ConversationContext) -> None:
+async def _finalize_call(conv: ConversationContext, twilio_recording_url: str | None = None) -> None:
     """
-    Write call record to PostgreSQL and transcript to S3.
-    Called when the LiveKit session ends.
+    POST call record to FastAPI /internal/finalize_call.
+    FastAPI writes to PostgreSQL and uploads to S3.
     """
-    # TODO(v0.2): implement DB write + S3 upload
-    # For now: log the transcript so nothing is lost
-    logger.info(
-        "Call ended",
-        extra={
-            "call_sid": conv.call_sid,
-            "practice_id": conv.practice_id,
-            "state": conv.state,
-            "disposition": _disposition(conv),
-            "duration_seconds": int(conv.elapsed_seconds()),
-            "patient_name": conv.booking.patient_name,
-        },
-    )
+    import httpx
+
+    payload = {
+        "call_sid": conv.call_sid,
+        "practice_id": conv.practice_id,
+        "patient_phone": conv.patient_phone,
+        "started_at": conv.started_at.isoformat(),
+        "disposition": _disposition(conv),
+        "patient_name": conv.booking.patient_name,
+        "requested_time": conv.booking.requested_time,
+        "service_type": conv.booking.service_type,
+        "transcript": conv.full_transcript(),
+        "twilio_recording_url": twilio_recording_url,
+    }
+
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                "http://localhost:8000/internal/finalize_call",
+                json=payload,
+                timeout=30.0,
+            )
+            resp.raise_for_status()
+            logger.info(f"Call finalized: {resp.json()}")
+    except Exception as e:
+        # Last-resort: log the full transcript so PHI isn't silently lost
+        logger.error(
+            "finalize_call POST failed — logging transcript locally",
+            extra={
+                "call_sid": conv.call_sid,
+                "practice_id": conv.practice_id,
+                "disposition": _disposition(conv),
+                "error": str(e),
+                "transcript": conv.full_transcript(),
+            },
+        )
 
 
 def _disposition(conv: ConversationContext) -> str:
