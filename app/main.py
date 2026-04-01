@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import calls
+from app.routers import calls, internal
 
 app = FastAPI(
     title="Voice AI Receptionist",
@@ -17,6 +17,7 @@ app.add_middleware(
 )
 
 app.include_router(calls.router)
+app.include_router(internal.router)
 
 
 @app.get("/health")
