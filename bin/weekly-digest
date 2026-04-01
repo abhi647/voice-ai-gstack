@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# weekly-digest — run the Monday morning digest inside Docker.
+#
+# Add to crontab on the server:
+#   0 8 * * 1 /path/to/voice-ai/bin/weekly-digest >> /var/log/weekly-digest.log 2>&1
+#
+# Or run manually:
+#   ./bin/weekly-digest             # send to all practices
+#   ./bin/weekly-digest --dry-run   # preview without sending
+
+set -euo pipefail
+
+PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$PROJECT_DIR"
+
+echo "[weekly-digest] Starting at $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+
+docker compose run --rm api python -m app.digest "$@"
+
+echo "[weekly-digest] Done at $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
