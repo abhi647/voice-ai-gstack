@@ -3,10 +3,9 @@
 # Stage 1: builder — installs dependencies into a venv
 # Stage 2: runtime — copies the venv and app code, nothing else
 #
-# The same image runs both the FastAPI server and the LiveKit agent worker.
-# The entrypoint is controlled by the CMD in docker-compose.yml:
-#   api:    uvicorn app.main:app
-#   worker: python -m app.agent.receptionist
+# Runs the FastAPI server only.
+# The voice pipeline (STT → Claude → TTS) runs inline per WebSocket connection —
+# no separate worker process needed.
 
 FROM mcr.microsoft.com/mirror/docker/library/python:3.11-slim AS builder
 

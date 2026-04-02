@@ -6,18 +6,98 @@ Built on Twilio Media Streams + Deepgram STT + Claude + ElevenLabs TTS, deployed
 
 ---
 
-## How it works
+## Architecture
 
+### System overview
+
+```mermaid
+graph TB
+    Patient([Patient Phone]) -->|PSTN call| Twilio
+    Twilio -->|POST /twilio/voice| API
+    API -->|TwiML: Connect+Stream| Twilio
+    Twilio <-->|WebSocket\nμ-law 8kHz audio| API
+
+    subgraph Azure App Service
+        API[FastAPI\napp/routers/stream.py]
+    end
+
+    subgraph AI Pipeline per call
+        API -->|audio chunks| Deepgram[Deepgram\nSTT nova-2]
+        Deepgram -->|transcript| Claude[Anthropic Claude\nclaude-sonnet-4-6]
+        Claude -->|reply text| ElevenLabs[ElevenLabs TTS\nulaw_8000]
+        ElevenLabs -->|audio chunks| API
+    end
+
+    API -->|finalize_call| DB[(PostgreSQL)]
+    API -->|transcript| Blob[(Azure Blob\nStorage)]
+    API -->|booking / escalation| SendGrid[SendGrid\nEmail + SMS]
+
+    subgraph Azure Container Registry
+        ACR[voice-ai image]
+    end
+    ACR -->|deployed to| API
 ```
-Patient calls Twilio number
-        ↓
-POST /twilio/voice — practice lookup, return <Connect><Stream>
-        ↓
-WebSocket /twilio/stream — bidirectional μ-law 8kHz audio
-        ↓
-Deepgram streaming STT → Claude (claude-sonnet-4-6) → ElevenLabs TTS
-        ↓
-Audio chunks stream back to Twilio in real time
+
+### Call flow (per call)
+
+```mermaid
+sequenceDiagram
+    participant P as Patient
+    participant T as Twilio
+    participant A as FastAPI
+    participant D as Deepgram
+    participant C as Claude
+    participant E as ElevenLabs
+
+    P->>T: Dials practice number
+    T->>A: POST /twilio/voice
+    A-->>T: TwiML <Connect><Stream>
+    T->>A: WebSocket open (connected + start events)
+    A->>D: Open streaming STT connection
+    A->>E: TTS greeting text
+    E-->>A: Audio chunks (μ-law)
+    A-->>T: media events (base64 audio)
+    T-->>P: Plays greeting
+
+    loop Each patient turn
+        P->>T: Speaks
+        T->>A: media events (audio)
+        A->>D: Forward audio chunks
+        D-->>A: Interim transcript (barge-in check)
+        D-->>A: Final transcript
+        A->>C: Messages + system prompt
+        C-->>A: Reply text
+        A->>E: TTS reply
+        E-->>A: Audio chunks
+        A-->>T: media events
+        T-->>P: Plays reply
+    end
+
+    P->>T: Hangs up
+    T->>A: stop event
+    A->>A: POST /internal/finalize_call
+    A->>A: Save transcript to DB + Blob
+```
+
+### Conversation state machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> GREETING
+    GREETING --> IDENTIFY_PATIENT : call answered
+    IDENTIFY_PATIENT --> UNDERSTAND_INTENT : patient named
+    UNDERSTAND_INTENT --> COLLECT_DETAILS : intent clear
+    COLLECT_DETAILS --> CONFIRM_BOOKING : details captured
+    CONFIRM_BOOKING --> COMPLETE : booking confirmed
+    COMPLETE --> [*]
+
+    GREETING --> ESCALATING : keyword trigger
+    IDENTIFY_PATIENT --> ESCALATING : keyword / 4min timeout
+    UNDERSTAND_INTENT --> ESCALATING : keyword / 4min timeout
+    COLLECT_DETAILS --> ESCALATING : keyword / 4min timeout
+    CONFIRM_BOOKING --> ESCALATING : keyword / 4min timeout
+    ESCALATING --> TRANSFERRED : staff notified
+    TRANSFERRED --> [*]
 ```
 
 Each call runs entirely in-process — no separate worker, no message queue. The WebSocket handler in `app/routers/stream.py` owns the full STT→LLM→TTS pipeline for its call duration.

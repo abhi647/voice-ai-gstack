@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     livekit_api_secret: str = ""
     livekit_sip_host: str = ""       # e.g. abc123.sip.livekit.cloud — from livekit_setup.py
     livekit_sip_trunk_id: str = ""   # set after running livekit_setup.py
+    livekit_sip_username: str = ""   # SIP auth username for inbound trunk
+    livekit_sip_password: str = ""   # SIP auth password for inbound trunk
     azure_storage_connection_string: str = ""  # from Azure portal → Storage account → Access keys
     azure_storage_container: str = "voice-ai-calls"  # container name in your storage account
     environment: str = "development"

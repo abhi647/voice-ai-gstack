@@ -1,7 +1,13 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import calls, internal
+from app.routers import calls, internal, stream
+
+# Ensure our app loggers surface at INFO level alongside uvicorn's own logs
+logging.basicConfig(level=logging.INFO)
+logging.getLogger("app").setLevel(logging.INFO)
 
 app = FastAPI(
     title="Voice AI Receptionist",
@@ -17,6 +23,7 @@ app.add_middleware(
 )
 
 app.include_router(calls.router)
+app.include_router(stream.router)
 app.include_router(internal.router)
 
 
