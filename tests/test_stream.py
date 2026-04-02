@@ -16,6 +16,9 @@ Coverage:
     ├── [✓] after-hours + message set → plays message and returns False
     └── [✓] business hours open + no after_hours_message → returns True and connects Deepgram
 
+  CallHandler._trigger_escalation()
+    └── [✓] POST to /internal/escalate includes escalation_number from practice config
+
   Note: The full WebSocket pipeline (Deepgram STT → Claude → ElevenLabs TTS) requires
   live external connections and is covered by manual integration testing. The unit tests
   here focus on the pure/mockable logic that's been production-proven but has no
@@ -260,3 +263,50 @@ async def test_start_business_hours_open_returns_true():
         result = await handler.start()
 
     assert result is True, "During business hours, start() must return True"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CallHandler._trigger_escalation() — escalation number wiring
+# ─────────────────────────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_trigger_escalation_sends_escalation_number():
+    """
+    _trigger_escalation() must include escalation_number in the POST body.
+
+    Regression: _get_escalation_number() previously always returned None,
+    so escalations silently failed — no transfer was ever initiated.
+    Now the number comes from practice.escalation_number via ConversationContext.
+    """
+    handler = _make_handler()
+    handler.conv.escalation_reason = "keyword: emergency"
+
+    captured_body = {}
+
+    class FakeResponse:
+        status_code = 200
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *args):
+            pass
+
+    class FakeClient:
+        async def post(self, url, json=None):
+            nonlocal captured_body
+            captured_body = json or {}
+            return FakeResponse()
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *args):
+            pass
+
+    with patch("app.routers.stream.httpx.AsyncClient", return_value=FakeClient()), \
+         patch.object(handler, "_interrupt", new_callable=AsyncMock), \
+         patch.object(handler, "_play_text", new_callable=AsyncMock):
+        await handler._trigger_escalation()
+
+    assert "escalation_number" in captured_body, (
+        "escalation_number must be included in the /internal/escalate POST — "
+        "without it the warm transfer never fires"
+    )
+    assert captured_body["escalation_number"] == "+15559876543"

@@ -44,6 +44,7 @@ router = APIRouter(prefix="/internal", tags=["internal"])
 class EscalationRequest(BaseModel):
     call_sid: str
     practice_id: str
+    escalation_number: str  # E.164 — practice's on-call/emergency phone number
     patient_name: str | None = None
     patient_phone: str | None = None
     reason: str | None = None
@@ -56,7 +57,7 @@ async def escalate_call(req: EscalationRequest) -> dict:
     Initiate a Twilio warm transfer with whisper leg.
 
     The agent calls this when an escalation trigger fires.
-    This endpoint is the control plane — LiveKit handles the audio.
+    This endpoint is the control plane — Twilio handles the audio bridge.
     """
     logger.info(
         "Escalation triggered",
@@ -67,35 +68,22 @@ async def escalate_call(req: EscalationRequest) -> dict:
         },
     )
 
-    # TODO(v0.2): look up practice escalation_number from DB by practice_id
-    # For now: escalation number must be in the job metadata or config
-    escalation_number = _get_escalation_number(req.practice_id)
-
-    if not escalation_number:
-        logger.error(f"No escalation number found for practice {req.practice_id}")
+    if not req.escalation_number:
+        logger.error(f"No escalation number for practice {req.practice_id}")
         return {"status": "error", "detail": "no escalation number configured"}
 
     try:
         _initiate_warm_transfer(
             call_sid=req.call_sid,
-            escalation_number=escalation_number,
+            escalation_number=req.escalation_number,
             patient_phone=req.patient_phone or "",
             whisper_text=req.summary,
         )
         return {"status": "escalating"}
     except Exception as e:
         logger.error(f"Twilio warm transfer failed: {e}")
-        # Fall through to unanswered path
         await _handle_unanswered_escalation(req)
         return {"status": "unanswered"}
-
-
-def _get_escalation_number(practice_id: str) -> str | None:
-    """
-    TODO(v0.2): look up from DB.
-    For now returns None — caller handles the missing case.
-    """
-    return None
 
 
 def _initiate_warm_transfer(

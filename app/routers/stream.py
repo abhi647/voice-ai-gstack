@@ -380,6 +380,7 @@ class CallHandler:
                     json={
                         "call_sid": self.conv.call_sid,
                         "practice_id": self.conv.practice_id,
+                        "escalation_number": self.conv.escalation_number,
                         "patient_name": self.conv.booking.patient_name,
                         "patient_phone": self.conv.patient_phone,
                         "reason": self.conv.escalation_reason,
