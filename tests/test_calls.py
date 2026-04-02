@@ -3,15 +3,14 @@ Tests for the Twilio inbound call webhook (app/routers/calls.py).
 
 Coverage:
   POST /twilio/voice
-    ├── [✓] practice found + SIP configured → TwiML with <Sip> URI
-    ├── [✓] practice found + SIP configured → X- headers include practice_id
-    ├── [✓] practice found + SIP NOT configured → holding message + hangup
+    ├── [✓] practice found → TwiML with <Connect><Stream> pointing to wss:// URL
+    ├── [✓] practice found → custom parameters include practice_id and patient_phone
+    ├── [✓] x-forwarded-host header used when present (Azure App Service proxy)
     ├── [✓] practice not found → graceful hangup TwiML
-    ├── [✓] practice found but is_active=False → graceful hangup (lapsed subscription)
-    └── [✓] health check → 200 OK
+    └── [✓] practice found but is_active=False → graceful hangup (lapsed subscription)
 
   POST /twilio/status
-    └── [✓] returns {"status": "received"}
+    └── [✓] returns TwiML XML (informational — no JSON body needed)
 
   Helper: _twiml_hangup
     └── [✓] returns XML with <Say> and <Hangup>
@@ -38,47 +37,53 @@ class TestInboundCall:
         assert resp.status_code == 200
         assert resp.json() == {"status": "ok"}
 
-    @patch("app.routers.calls.settings")
     @patch("app.routers.calls.Practice.get_by_twilio_number", new_callable=AsyncMock)
-    def test_sip_configured_returns_sip_twiml(self, mock_get, mock_settings):
+    def test_practice_found_returns_media_streams_twiml(self, mock_get):
         mock_get.return_value = make_practice(name="Sunrise Dental")
-        mock_settings.livekit_sip_host = "abc123.sip.livekit.cloud"
 
         resp = client.post("/twilio/voice", data=_twilio_form(to="+15551234567"))
 
         assert resp.status_code == 200
         assert resp.headers["content-type"] == "application/xml"
         body = resp.text
-        assert "sip:" in body
-        assert "abc123.sip.livekit.cloud" in body
+        # Must use Media Streams, not SIP dial
+        assert "<Connect>" in body
+        assert "<Stream" in body
+        assert "wss://" in body
+        assert "/twilio/stream" in body
         assert "<Hangup" not in body
+        assert "sip:" not in body
 
-    @patch("app.routers.calls.settings")
     @patch("app.routers.calls.Practice.get_by_twilio_number", new_callable=AsyncMock)
-    def test_sip_twiml_includes_practice_headers(self, mock_get, mock_settings):
+    def test_media_streams_twiml_includes_practice_parameters(self, mock_get):
         practice = make_practice(name="Sunrise Dental")
         mock_get.return_value = practice
-        mock_settings.livekit_sip_host = "abc123.sip.livekit.cloud"
 
-        resp = client.post("/twilio/voice", data=_twilio_form(to="+15551234567"))
+        resp = client.post(
+            "/twilio/voice",
+            data=_twilio_form(to="+15551234567", from_="+18005551234"),
+        )
 
         body = resp.text
-        # Practice ID should be in the TwiML as an X- SIP header value
+        # practice_id and patient_phone passed as <Parameter> elements
         assert str(practice.id) in body
-        assert "X-Practice-Id" in body
+        assert "practice_id" in body
+        assert "patient_phone" in body
+        assert "+18005551234" in body
 
-    @patch("app.routers.calls.settings")
     @patch("app.routers.calls.Practice.get_by_twilio_number", new_callable=AsyncMock)
-    def test_sip_not_configured_returns_holding_message(self, mock_get, mock_settings):
+    def test_x_forwarded_host_used_for_stream_url(self, mock_get):
+        """Azure App Service sets X-Forwarded-Host — stream URL must use it."""
         mock_get.return_value = make_practice(name="Sunrise Dental")
-        mock_settings.livekit_sip_host = ""  # not yet configured
 
-        resp = client.post("/twilio/voice", data=_twilio_form(to="+15551234567"))
+        resp = client.post(
+            "/twilio/voice",
+            data=_twilio_form(to="+15551234567"),
+            headers={"x-forwarded-host": "voice-ai-app.azurewebsites.net"},
+        )
 
-        assert resp.status_code == 200
         body = resp.text
-        assert "<Hangup" in body
-        assert "sip:" not in body
+        assert "voice-ai-app.azurewebsites.net" in body
 
     @patch("app.routers.calls.Practice.get_by_twilio_number", new_callable=AsyncMock)
     def test_practice_not_found_hangs_up(self, mock_get):
@@ -101,11 +106,10 @@ class TestInboundCall:
         assert resp.status_code == 200
         assert "<Hangup" in resp.text
 
-    @patch("app.routers.calls.Practice.get_by_twilio_number", new_callable=AsyncMock)
-    def test_status_webhook_returns_received(self, mock_get):
+    def test_status_webhook_returns_xml(self):
         resp = client.post(
             "/twilio/status",
             data={"CallSid": "CA123", "CallStatus": "completed"},
         )
         assert resp.status_code == 200
-        assert resp.json() == {"status": "received"}
+        assert resp.headers["content-type"] == "application/xml"

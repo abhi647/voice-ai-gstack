@@ -489,8 +489,10 @@ async def media_stream(websocket: WebSocket) -> None:
                     logger.warning(
                         f"Practice {practice_id!r} not found — closing stream {stream_sid}"
                     )
-                    await websocket.close()
-                    return
+                    # Do NOT call websocket.close() explicitly — Azure's reverse proxy
+                    # fragments the CLOSE control frame, causing Twilio error 31924.
+                    # Just break out of the event loop; the function's exit closes cleanly.
+                    break
 
                 config = practice.get_config()
                 handler = CallHandler(
