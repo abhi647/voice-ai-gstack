@@ -108,23 +108,25 @@ def _initiate_warm_transfer(
 
     conference_name = f"escalation-{call_sid}"
 
-    # Dial the human with a whisper before bridging the patient
+    # Dial the human with a whisper before bridging the patient.
+    # from_ must be a Twilio-owned number — use the configured SMS number.
     client.calls.create(
         to=escalation_number,
-        from_=patient_phone,
+        from_=settings.twilio_sms_from,
         twiml=f"""<Response>
   <Say>{whisper_text}</Say>
   <Dial>
-    <Conference waitUrl="" beep="false">{conference_name}</Conference>
+    <Conference waitUrl="http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical" beep="false">{conference_name}</Conference>
   </Dial>
 </Response>""",
     )
 
-    # Update the original call to join the same conference
+    # Redirect the patient's call leg into the same conference.
+    # They hear hold music until the human answers.
     client.calls(call_sid).update(
         twiml=f"""<Response>
   <Dial>
-    <Conference waitUrl="" beep="false">{conference_name}</Conference>
+    <Conference waitUrl="http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical" beep="false">{conference_name}</Conference>
   </Dial>
 </Response>""",
     )
