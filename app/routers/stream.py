@@ -30,6 +30,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from app.agent.disclosures import get_disclosure
 from app.agent.prompts import build_system_prompt
 from app.agent.state import ConversationContext, ConversationState
+from app.config import settings
 from app.database import AsyncSessionLocal
 from app.models.practice import Practice
 from app.models.practice_config import PracticeConfig
@@ -148,6 +149,10 @@ class CallHandler:
             practice.name, practice.state, ConversationState.GREETING, config
         )
 
+        # SEC-3: Serialise concurrent Deepgram callbacks so two rapid utterances
+        # never interleave user→user messages in Claude history (→ 400 from API).
+        self._transcript_lock = asyncio.Lock()
+
         # Current TTS playback task (cancelled on barge-in)
         self._speaking_task: asyncio.Task | None = None
         self._speaking = False
@@ -264,35 +269,49 @@ class CallHandler:
         self._dg_conn = conn
 
     async def _on_final_transcript(self, text: str) -> None:
-        """User finished speaking. Interrupt agent if needed, then generate a reply."""
-        logger.info(f"PATIENT [{self.call_sid}]: {text}")
-        self.conv.append_transcript("PATIENT", text)
+        """User finished speaking. Interrupt agent if needed, then generate a reply.
 
-        # Interrupt any ongoing agent speech
-        await self._interrupt()
+        SEC-3: The asyncio.Lock ensures that two rapid utterances from Deepgram are
+        processed one at a time. Without it, concurrent callbacks can append
+        user→user messages to Claude history, which the API rejects with 400.
+        """
+        async with self._transcript_lock:
+            logger.info(f"PATIENT [{self.call_sid}]: {text}")
+            self.conv.append_transcript("PATIENT", text)
 
-        # Escalation keyword?
-        keyword = self.conv.check_for_escalation_keyword(text)
-        if keyword:
-            logger.info(f"Escalation keyword '{keyword}' — transferring")
-            self.conv.escalation_reason = f"keyword: {keyword}"
-            self.conv.transition(ConversationState.ESCALATING)
-            asyncio.create_task(self._trigger_escalation())
-            return
+            # Interrupt any ongoing agent speech
+            await self._interrupt()
 
-        # 4-minute timeout?
-        if self.conv.should_escalate_due_to_timeout():
-            self.conv.escalation_reason = "timeout: 4 minutes without resolution"
-            self.conv.transition(ConversationState.ESCALATING)
-            asyncio.create_task(self._trigger_escalation())
-            return
+            # Escalation keyword?
+            keyword = self.conv.check_for_escalation_keyword(text)
+            if keyword:
+                logger.info(f"Escalation keyword '{keyword}' — transferring")
+                self.conv.escalation_reason = f"keyword: {keyword}"
+                self.conv.transition(ConversationState.ESCALATING)
+                asyncio.create_task(self._trigger_escalation())
+                return
 
-        # Normal turn: Claude → ElevenLabs → Twilio
-        self._speaking_task = asyncio.create_task(self._respond(text))
+            # 4-minute timeout?
+            if self.conv.should_escalate_due_to_timeout():
+                self.conv.escalation_reason = "timeout: 4 minutes without resolution"
+                self.conv.transition(ConversationState.ESCALATING)
+                asyncio.create_task(self._trigger_escalation())
+                return
+
+            # Normal turn: Claude → ElevenLabs → Twilio
+            self._speaking_task = asyncio.create_task(self._respond(text))
 
     async def _respond(self, user_text: str) -> None:
-        """Claude → ElevenLabs → stream audio to Twilio."""
-        self.messages.append({"role": "user", "content": user_text})
+        """Claude → ElevenLabs → stream audio to Twilio.
+
+        SEC-4: Do NOT append the user message to self.messages before calling Claude.
+        If Claude throws (network error, rate limit, etc.), the un-answered user
+        message would sit in history. The next turn would then send consecutive
+        user→user messages, which the Anthropic API rejects with 400.
+
+        Instead, build an ephemeral list for the API call and only mutate
+        self.messages after we have a successful assistant reply.
+        """
         try:
             # Rebuild system prompt for current conversation state
             system = build_system_prompt(
@@ -302,22 +321,28 @@ class CallHandler:
                 self.config,
             )
 
+            # Pass history + new message without mutating self.messages yet.
             reply = await _claude_respond(
-                messages=self.messages,
+                messages=self.messages + [{"role": "user", "content": user_text}],
                 system=system,
                 model=self.config.llm_model,
                 api_key=self._anthropic_key,
             )
+
+            # Claude responded successfully — now it's safe to commit to history.
+            self.messages.append({"role": "user", "content": user_text})
+            self.messages.append({"role": "assistant", "content": reply})
+
             logger.info(f"AGENT  [{self.call_sid}]: {reply}")
             self.conv.append_transcript("AGENT", reply)
-            self.messages.append({"role": "assistant", "content": reply})
 
             await self._play_text(reply)
 
         except asyncio.CancelledError:
-            pass  # barge-in cancelled this task
+            pass  # barge-in cancelled this task — history stays clean
         except Exception as exc:
             logger.error(f"_respond error [{self.call_sid}]: {exc}")
+            # self.messages is NOT mutated — next turn can retry cleanly
 
     async def _play_text(self, text: str) -> None:
         """TTS text and stream μ-law chunks to Twilio."""
@@ -378,6 +403,7 @@ class CallHandler:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 await client.post(
                     "http://localhost:8000/internal/escalate",
+                    headers={"X-Internal-Secret": settings.internal_secret},
                     json={
                         "call_sid": self.conv.call_sid,
                         "practice_id": self.conv.practice_id,
@@ -434,6 +460,7 @@ class CallHandler:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 resp = await client.post(
                     "http://localhost:8000/internal/finalize_call",
+                    headers={"X-Internal-Secret": settings.internal_secret},
                     json=payload,
                 )
                 resp.raise_for_status()

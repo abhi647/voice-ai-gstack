@@ -291,7 +291,7 @@ async def test_trigger_escalation_sends_escalation_number():
             pass
 
     class FakeClient:
-        async def post(self, url, json=None):
+        async def post(self, url, json=None, headers=None):
             nonlocal captured_body
             captured_body = json or {}
             return FakeResponse()

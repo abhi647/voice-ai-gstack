@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     sendgrid_api_key: str = ""
     sendgrid_from_email: str = "noreply@yourvoiceai.com"
     twilio_sms_from: str = ""  # E.164 number to send SMS from
+    internal_secret: str = ""  # Shared secret for /internal/* endpoints — set in production
 
 
 settings = Settings()

@@ -20,9 +20,10 @@ If the escalation number doesn't answer:
 """
 
 import logging
+import secrets
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,6 +42,28 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/internal", tags=["internal"])
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# SEC-2: Internal endpoint auth
+# ─────────────────────────────────────────────────────────────────────────────
+
+async def _require_internal_secret(
+    x_internal_secret: str = Header(default="", alias="X-Internal-Secret"),
+) -> None:
+    """
+    Gate all /internal/* endpoints with a shared secret.
+
+    The LiveKit/stream agent sends this header on every internal POST.
+    If INTERNAL_SECRET is not configured (dev), the check is skipped.
+    In production, set INTERNAL_SECRET to a random 32-byte hex string and
+    firewall the /internal/* prefix from the public internet as a second layer.
+    """
+    if not settings.internal_secret:
+        return  # not configured — open in development
+    if not secrets.compare_digest(x_internal_secret, settings.internal_secret):
+        logger.warning("Unauthorized /internal/* request — bad or missing X-Internal-Secret")
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+
 class EscalationRequest(BaseModel):
     call_sid: str
     practice_id: str
@@ -52,7 +75,7 @@ class EscalationRequest(BaseModel):
     summary: str  # whisper text read to the human
 
 
-@router.post("/escalate")
+@router.post("/escalate", dependencies=[Depends(_require_internal_secret)])
 async def escalate_call(req: EscalationRequest) -> dict:
     """
     Initiate a Twilio warm transfer with whisper leg.
@@ -175,7 +198,7 @@ class FinalizeCallRequest(BaseModel):
     twilio_recording_url: str | None = None  # if set, fetch from Twilio and upload to S3
 
 
-@router.post("/finalize_call")
+@router.post("/finalize_call", dependencies=[Depends(_require_internal_secret)])
 async def finalize_call(req: FinalizeCallRequest, db: AsyncSession = Depends(get_db)) -> dict:
     """
     Persist a completed call to PostgreSQL and S3.
