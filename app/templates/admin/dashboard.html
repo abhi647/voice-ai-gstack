@@ -1,0 +1,190 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Dashboard — VoiceIQ Admin{% endblock %}
+{% block breadcrumb %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Dashboard</h1>
+  <p class="subtitle">Live call intelligence for your practice — last updated now.</p>
+</div>
+
+<!-- Metric cards -->
+<div class="grid-4">
+
+  <div class="metric-card">
+    <div class="metric-label">Total Calls</div>
+    <div class="metric-value">{{ stats.total_calls }}</div>
+    <div class="metric-delta neutral">All time</div>
+  </div>
+
+  <div class="metric-card">
+    <div class="metric-label">Calls Today</div>
+    <div class="metric-value">{{ stats.calls_today }}</div>
+    <div class="metric-delta {% if stats.calls_today > 0 %}up{% else %}neutral{% endif %}">
+      {% if stats.calls_today > 0 %}Active today{% else %}No calls yet{% endif %}
+    </div>
+  </div>
+
+  <div class="metric-card">
+    <div class="metric-label">Booking Rate</div>
+    <div class="metric-value">{{ stats.booking_rate_pct }}%</div>
+    <div class="metric-delta {% if stats.booking_rate_pct >= 60 %}up{% elif stats.booking_rate_pct >= 30 %}neutral{% else %}down{% endif %}">
+      {{ stats.total_bookings }} bookings captured
+    </div>
+  </div>
+
+  <div class="metric-card">
+    <div class="metric-label">SMS Confirmations</div>
+    <div class="metric-value">{{ stats.sms_sent }}</div>
+    <div class="metric-delta {% if stats.sms_success_rate >= 80 %}up{% else %}neutral{% endif %}">
+      {{ stats.sms_success_rate }}% success rate
+    </div>
+  </div>
+
+</div>
+
+<!-- Charts row -->
+<div class="grid-3-1 mt-28">
+
+  <!-- Call volume chart -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Call Volume — Last 7 Days</span>
+    </div>
+    <div class="card-body">
+      <div class="chart-wrap">
+        <canvas id="volumeChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Disposition donut -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Disposition Mix</span>
+    </div>
+    <div class="card-body">
+      <div class="chart-wrap">
+        <canvas id="dispositionChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Recent calls table -->
+<div class="card mt-28">
+  <div class="card-header" style="padding-bottom:16px">
+    <span class="card-title">Recent Calls</span>
+    <a href="/admin/calls" class="btn btn-ghost" style="font-size:0.8rem;padding:6px 12px">View all →</a>
+  </div>
+
+  {% if recent_calls %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Patient</th>
+        <th>Service</th>
+        <th>Disposition</th>
+        <th>Patient SMS</th>
+        <th>Duration</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in recent_calls %}
+      <tr>
+        <td><a class="row-link" href="/admin/calls/{{ c.id }}">{{ c.started_at | fmt_dt }}</a></td>
+        <td>
+          <div style="font-weight:500">{{ c.patient_name or '—' }}</div>
+          <div style="font-size:0.78rem;color:var(--text-secondary)">{{ c.patient_phone }}</div>
+        </td>
+        <td>{{ c.service_type or '—' }}</td>
+        <td>{{ c.disposition | disposition_badge | safe }}</td>
+        <td>{{ c | sms_status | safe }}</td>
+        <td style="color:var(--text-secondary)">{{ c | duration }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">📞</div>
+    <strong>No calls yet</strong>
+    <p>Calls will appear here as they come in.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // ---------- Volume chart ----------
+  (function() {
+    const labels = {{ chart_labels | tojson }};
+    const values = {{ chart_values | tojson }};
+    const ctx = document.getElementById('volumeChart').getContext('2d');
+
+    const grad = ctx.createLinearGradient(0, 0, 0, 240);
+    grad.addColorStop(0, 'rgba(0, 104, 119, 0.18)');
+    grad.addColorStop(1, 'rgba(0, 104, 119, 0)');
+
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          borderColor: '#006877',
+          borderWidth: 2.5,
+          backgroundColor: grad,
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: '#006877',
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11 }, color: '#8fa8ad' } },
+          y: { grid: { color: 'rgba(0,104,119,0.06)' }, ticks: { font: { family: 'Inter', size: 11 }, color: '#8fa8ad', stepSize: 1 }, beginAtZero: true }
+        }
+      }
+    });
+  })();
+
+  // ---------- Disposition donut ----------
+  (function() {
+    const data = {{ disposition_data | tojson }};
+    const ctx = document.getElementById('dispositionChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: data.map(d => d.label),
+        datasets: [{
+          data: data.map(d => d.count),
+          backgroundColor: ['#006877','#00bdd6','#fbbf24','#f87171','#a5b4fc','#94a3b8'],
+          borderWidth: 0,
+          hoverOffset: 6,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '68%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { font: { family: 'Inter', size: 11 }, color: '#4a6267', padding: 12, boxWidth: 10, boxHeight: 10 }
+          }
+        }
+      }
+    });
+  })();
+</script>
+{% endblock %}

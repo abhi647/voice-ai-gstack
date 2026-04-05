@@ -1,0 +1,111 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Call Log — VoiceIQ Admin{% endblock %}
+{% block breadcrumb %}Call Log{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Call Log</h1>
+  <p class="subtitle">{{ total }} total calls · page {{ page }} of {{ total_pages }}</p>
+</div>
+
+<div class="card">
+
+  <!-- Filter bar -->
+  <form method="get" action="/admin/calls">
+    <div class="filter-bar">
+      <input
+        type="search"
+        name="q"
+        value="{{ q or '' }}"
+        placeholder="Search by patient name or phone…"
+        autocomplete="off"
+      >
+      <select name="disposition">
+        <option value="">All dispositions</option>
+        <option value="BOOKING_CAPTURED"   {% if disposition_filter == 'BOOKING_CAPTURED' %}selected{% endif %}>Booking Captured</option>
+        <option value="ESCALATED"          {% if disposition_filter == 'ESCALATED' %}selected{% endif %}>Escalated</option>
+        <option value="ESCALATED_UNANSWERED" {% if disposition_filter == 'ESCALATED_UNANSWERED' %}selected{% endif %}>Escalated (Unanswered)</option>
+        <option value="FAQ_ONLY"           {% if disposition_filter == 'FAQ_ONLY' %}selected{% endif %}>FAQ Only</option>
+        <option value="HUNG_UP"            {% if disposition_filter == 'HUNG_UP' %}selected{% endif %}>Hung Up</option>
+      </select>
+      <button type="submit" class="btn btn-primary">Filter</button>
+      {% if q or disposition_filter %}
+      <a href="/admin/calls" class="btn btn-ghost">Clear</a>
+      {% endif %}
+      <div style="flex:1"></div>
+      <span style="font-size:0.8rem;color:var(--text-muted)">{{ total }} results</span>
+    </div>
+  </form>
+
+  {% if calls %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Patient</th>
+        <th>Phone</th>
+        <th>Service</th>
+        <th>Requested Time</th>
+        <th>Disposition</th>
+        <th>Patient SMS</th>
+        <th>Duration</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in calls %}
+      <tr>
+        <td>
+          <a class="row-link" href="/admin/calls/{{ c.id }}">{{ c.started_at | fmt_dt }}</a>
+        </td>
+        <td style="font-weight:500">{{ c.patient_name or '—' }}</td>
+        <td style="font-size:0.82rem;color:var(--text-secondary)">{{ c.patient_phone }}</td>
+        <td>{{ c.service_type or '—' }}</td>
+        <td style="font-size:0.82rem;color:var(--text-secondary)">{{ c.requested_time or '—' }}</td>
+        <td>{{ c.disposition | disposition_badge | safe }}</td>
+        <td>{{ c | sms_status | safe }}</td>
+        <td style="color:var(--text-secondary)">{{ c | duration }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Pagination -->
+  <div class="pagination">
+    {% if page > 1 %}
+      <a href="?page={{ page - 1 }}{% if q %}&q={{ q }}{% endif %}{% if disposition_filter %}&disposition={{ disposition_filter }}{% endif %}">← Prev</a>
+    {% endif %}
+
+    {% for p in range(1, total_pages + 1) %}
+      {% if p == page %}
+        <span class="pg-active">{{ p }}</span>
+      {% elif p <= 3 or p >= total_pages - 1 or (p >= page - 1 and p <= page + 1) %}
+        <a href="?page={{ p }}{% if q %}&q={{ q }}{% endif %}{% if disposition_filter %}&disposition={{ disposition_filter }}{% endif %}">{{ p }}</a>
+      {% elif p == 4 and page > 5 %}
+        <span style="background:none;box-shadow:none;color:var(--text-muted)">…</span>
+      {% elif p == total_pages - 2 and page < total_pages - 3 %}
+        <span style="background:none;box-shadow:none;color:var(--text-muted)">…</span>
+      {% endif %}
+    {% endfor %}
+
+    {% if page < total_pages %}
+      <a href="?page={{ page + 1 }}{% if q %}&q={{ q }}{% endif %}{% if disposition_filter %}&disposition={{ disposition_filter }}{% endif %}">Next →</a>
+    {% endif %}
+
+    <span class="pg-info">{{ total }} calls</span>
+  </div>
+
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">📋</div>
+    <strong>No calls yet</strong>
+    {% if q or disposition_filter %}
+    <p>No calls match your filters. <a href="/admin/calls" style="color:var(--teal-primary)">Clear filters</a></p>
+    {% else %}
+    <p>Calls will appear here once patients start calling in.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
