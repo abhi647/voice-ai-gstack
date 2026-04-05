@@ -57,6 +57,11 @@ jobs:
           docker push $ACR_REGISTRY/$IMAGE_NAME:latest
           docker push $ACR_REGISTRY/$IMAGE_NAME:${{ github.sha }}
 
+      - name: Run database migrations
+        run: |
+          az webapp ssh --name $APP_SERVICE_NAME --resource-group $RESOURCE_GROUP \
+            --command "cd /app && alembic upgrade head"
+
       - name: Deploy to Azure App Service
         run: |
           az webapp config container set \
