@@ -3,7 +3,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import calls, internal, stream
+from app.routers import admin, calls, internal, stream
 
 # Ensure our app loggers surface at INFO level alongside uvicorn's own logs
 logging.basicConfig(level=logging.INFO)
@@ -25,6 +25,7 @@ app.add_middleware(
 app.include_router(calls.router)
 app.include_router(stream.router)
 app.include_router(internal.router)
+app.include_router(admin.router)
 
 
 @app.get("/health")

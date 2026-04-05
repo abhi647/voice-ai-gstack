@@ -41,6 +41,8 @@ class Call(Base):
     audio_s3_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
     # Full transcript text (also stored encrypted in S3; this is the searchable copy)
     transcript: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Patient-facing confirmation SMS — set when we successfully text the patient
+    sms_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
