@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from twilio.twiml.voice_response import VoiceResponse
 
 from app.database import get_db
+from app.middleware.twilio_auth import verify_twilio_signature
 from app.models.practice import Practice
 
 router = APIRouter(prefix="/twilio", tags=["calls"])
@@ -34,7 +35,7 @@ def _twiml_hangup(message: str) -> Response:
     return Response(content=str(vr), media_type="application/xml")
 
 
-@router.post("/voice")
+@router.post("/voice", dependencies=[Depends(verify_twilio_signature)])
 async def inbound_call(
     request: Request,
     To: str = Form(...),
@@ -70,7 +71,7 @@ async def inbound_call(
     return Response(content=str(vr), media_type="application/xml")
 
 
-@router.post("/status")
+@router.post("/status", dependencies=[Depends(verify_twilio_signature)])
 async def call_status(
     request: Request,
     CallSid: str = Form(...),
