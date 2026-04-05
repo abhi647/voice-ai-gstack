@@ -135,6 +135,7 @@ class CallHandler:
             practice_timezone=practice.timezone,
             call_sid=call_sid,
             patient_phone=patient_phone,
+            twilio_number=practice.twilio_number or "",
             escalation_number=practice.escalation_number or "",
             staff_email=practice.staff_email,
             ehr_adapter=config.ehr_adapter,
@@ -380,6 +381,7 @@ class CallHandler:
                     json={
                         "call_sid": self.conv.call_sid,
                         "practice_id": self.conv.practice_id,
+                        "twilio_number": self.conv.twilio_number,
                         "escalation_number": self.conv.escalation_number,
                         "patient_name": self.conv.booking.patient_name,
                         "patient_phone": self.conv.patient_phone,

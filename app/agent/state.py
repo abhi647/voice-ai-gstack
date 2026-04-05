@@ -117,6 +117,7 @@ class ConversationContext:
     practice_timezone: str    # IANA timezone — for after-hours check
     call_sid: str
     patient_phone: str
+    twilio_number: str = ""        # practice's Twilio voice number — used as from_ in warm transfer
     escalation_number: str = ""   # where to warm-transfer + where to SMS booking requests
     staff_email: str | None = None  # where to email booking notifications
     ehr_adapter: str = "notify"     # which EHR adapter to use at call end

@@ -44,7 +44,8 @@ router = APIRouter(prefix="/internal", tags=["internal"])
 class EscalationRequest(BaseModel):
     call_sid: str
     practice_id: str
-    escalation_number: str  # E.164 — practice's on-call/emergency phone number
+    twilio_number: str        # practice's Twilio voice number — used as from_ in outbound leg
+    escalation_number: str    # E.164 — practice's on-call/emergency phone number
     patient_name: str | None = None
     patient_phone: str | None = None
     reason: str | None = None
@@ -75,6 +76,7 @@ async def escalate_call(req: EscalationRequest) -> dict:
     try:
         _initiate_warm_transfer(
             call_sid=req.call_sid,
+            twilio_number=req.twilio_number,
             escalation_number=req.escalation_number,
             patient_phone=req.patient_phone or "",
             whisper_text=req.summary,
@@ -88,6 +90,7 @@ async def escalate_call(req: EscalationRequest) -> dict:
 
 def _initiate_warm_transfer(
     call_sid: str,
+    twilio_number: str,
     escalation_number: str,
     patient_phone: str,
     whisper_text: str,
@@ -109,10 +112,10 @@ def _initiate_warm_transfer(
     conference_name = f"escalation-{call_sid}"
 
     # Dial the human with a whisper before bridging the patient.
-    # from_ must be a Twilio-owned number — use the configured SMS number.
+    # from_ must be the practice's Twilio voice number (owned by us).
     client.calls.create(
         to=escalation_number,
-        from_=settings.twilio_sms_from,
+        from_=twilio_number,
         twiml=f"""<Response>
   <Say>{whisper_text}</Say>
   <Dial>
