@@ -1,0 +1,122 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Analytics — VoiceIQ Admin{% endblock %}
+{% block breadcrumb %}Analytics{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Analytics</h1>
+  <p class="subtitle">Call performance and AI booking intelligence.</p>
+</div>
+
+<!-- Top metrics -->
+<div class="grid-4">
+
+  <div class="metric-card">
+    <div class="metric-label">Total Calls</div>
+    <div class="metric-value">{{ stats.total_calls }}</div>
+    <div class="metric-delta neutral">All time</div>
+  </div>
+
+  <div class="metric-card">
+    <div class="metric-label">Bookings Captured</div>
+    <div class="metric-value">{{ stats.total_bookings }}</div>
+    <div class="metric-delta {% if stats.booking_rate_pct >= 50 %}up{% else %}neutral{% endif %}">
+      {{ stats.booking_rate_pct }}% of all calls
+    </div>
+  </div>
+
+  <div class="metric-card">
+    <div class="metric-label">Escalation Rate</div>
+    <div class="metric-value">{{ stats.escalation_rate_pct }}%</div>
+    <div class="metric-delta {% if stats.escalation_rate_pct < 20 %}up{% elif stats.escalation_rate_pct < 40 %}neutral{% else %}down{% endif %}">
+      {{ stats.total_escalated }} calls escalated
+    </div>
+  </div>
+
+  <div class="metric-card">
+    <div class="metric-label">SMS Success</div>
+    <div class="metric-value">{{ stats.sms_success_rate }}%</div>
+    <div class="metric-delta {% if stats.sms_success_rate >= 90 %}up{% else %}neutral{% endif %}">
+      {{ stats.sms_sent }} sent of {{ stats.total_bookings }} bookings
+    </div>
+  </div>
+
+</div>
+
+<!-- Charts -->
+<div class="grid-2 mt-28">
+
+  <!-- Disposition breakdown -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Disposition Breakdown</span>
+    </div>
+    <div class="card-body">
+      {% for item in disposition_data %}
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <div style="width:10px;height:10px;border-radius:2px;background:{{ loop.index0 | disposition_color }};flex-shrink:0"></div>
+        <div style="flex:1;font-size:0.875rem">{{ item.label }}</div>
+        <div style="font-family:'Newsreader',serif;font-size:1.1rem;font-weight:400;color:var(--text-primary)">{{ item.count }}</div>
+        <div style="font-size:0.78rem;color:var(--text-muted);width:40px;text-align:right">{{ item.pct }}%</div>
+        <div style="width:80px;height:6px;background:var(--surface-page);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:{{ item.pct }}%;background:{{ loop.index0 | disposition_color }};border-radius:3px"></div>
+        </div>
+      </div>
+      {% else %}
+      <p style="color:var(--text-muted);font-size:0.875rem">No calls yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Volume trend -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">30-Day Volume Trend</span>
+    </div>
+    <div class="card-body">
+      <div class="chart-wrap">
+        <canvas id="trendChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function() {
+    const labels = {{ chart_labels | tojson }};
+    const values = {{ chart_values | tojson }};
+    const ctx = document.getElementById('trendChart').getContext('2d');
+
+    const grad = ctx.createLinearGradient(0, 0, 0, 240);
+    grad.addColorStop(0, 'rgba(0, 104, 119, 0.15)');
+    grad.addColorStop(1, 'rgba(0, 104, 119, 0)');
+
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          backgroundColor: 'rgba(0, 104, 119, 0.7)',
+          borderRadius: 4,
+          hoverBackgroundColor: '#006877',
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10 }, color: '#8fa8ad', maxRotation: 45 } },
+          y: { grid: { color: 'rgba(0,104,119,0.06)' }, ticks: { font: { family: 'Inter', size: 11 }, color: '#8fa8ad', stepSize: 1 }, beginAtZero: true }
+        }
+      }
+    });
+  })();
+</script>
+{% endblock %}
