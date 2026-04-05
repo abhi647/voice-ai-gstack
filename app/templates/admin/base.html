@@ -1,414 +1,109 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="light" lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}VoiceIQ Admin{% endblock %}</title>
 
-  <!-- Fonts: Newsreader (serif display) + Inter (body) -->
+  <!-- Tailwind CSS with plugins -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600;6..72,700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 
+  <!-- Tailwind Config -->
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#026978",
+            "primary-dim": "#005c69",
+            "primary-container": "#9fecfd",
+            "primary-fixed": "#9fecfd",
+            "primary-fixed-dim": "#91ddee",
+            "on-primary": "#eefbff",
+            "on-primary-container": "#005865",
+            "on-primary-fixed": "#00444f",
+            "on-primary-fixed-variant": "#006371",
+            "secondary": "#4b6369",
+            "secondary-dim": "#3f575c",
+            "secondary-container": "#cde7ed",
+            "secondary-fixed": "#cde7ed",
+            "secondary-fixed-dim": "#bfd9df",
+            "on-secondary": "#eefbff",
+            "on-secondary-container": "#3e555b",
+            "on-secondary-fixed": "#2c4348",
+            "on-secondary-fixed-variant": "#485f65",
+            "tertiary": "#456182",
+            "tertiary-dim": "#385575",
+            "tertiary-container": "#b1cef4",
+            "tertiary-fixed": "#b1cef4",
+            "tertiary-fixed-dim": "#a4c1e6",
+            "on-tertiary": "#f7f9ff",
+            "on-tertiary-container": "#284665",
+            "on-tertiary-fixed": "#123250",
+            "on-tertiary-fixed-variant": "#324f6f",
+            "error": "#a83836",
+            "error-dim": "#67040d",
+            "error-container": "#fa746f",
+            "on-error": "#fff7f6",
+            "on-error-container": "#6e0a12",
+            "surface": "#f6fafb",
+            "surface-bright": "#f6fafb",
+            "surface-dim": "#d2dcdf",
+            "surface-variant": "#dae4e7",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-low": "#eff5f6",
+            "surface-container": "#e8eff1",
+            "surface-container-high": "#e1eaec",
+            "surface-container-highest": "#dae4e7",
+            "on-surface": "#2a3436",
+            "on-surface-variant": "#576163",
+            "background": "#f6fafb",
+            "on-background": "#2a3436",
+            "outline": "#727c7f",
+            "outline-variant": "#a9b4b6",
+            "inverse-surface": "#0a0f10",
+            "inverse-on-surface": "#999e9f",
+            "inverse-primary": "#9fecfd",
+            "surface-tint": "#026978",
+          },
+          fontFamily: {
+            "headline": ["Newsreader", "serif"],
+            "body": ["Roboto", "sans-serif"],
+            "label": ["Roboto", "sans-serif"],
+          }
+        }
+      }
+    }
+  </script>
+
   <style>
-    /* ------------------------------------------------------------------ */
-    /* THE PRECISION CURATOR — Design System Variables                      */
-    /* ------------------------------------------------------------------ */
-    :root {
-      --teal-primary:   #006877;
-      --teal-mid:       #008a9e;
-      --teal-light:     #00bdd6;
-      --teal-surface:   #e8f4f6;
-      --teal-hover:     rgba(0, 104, 119, 0.08);
-
-      --surface-page:   #f4f6f7;   /* page background — slightly warm grey */
-      --surface-sidebar:#1a2e33;   /* dark teal sidebar */
-      --surface-card:   #ffffff;
-      --surface-row:    #f8fafb;   /* alternating table row */
-
-      --text-primary:   #0d1f23;
-      --text-secondary: #4a6267;
-      --text-muted:     #8fa8ad;
-      --text-sidebar:   rgba(255,255,255,0.85);
-      --text-sidebar-active: #ffffff;
-
-      --gradient-cta:   linear-gradient(135deg, #006877 0%, #00bdd6 100%);
-
-      --radius-card:    16px;
-      --radius-badge:   6px;
-      --radius-input:   10px;
-
-      --shadow-card:    0 2px 12px rgba(0,104,119,0.08), 0 1px 3px rgba(0,0,0,0.04);
-      --shadow-glass:   0 8px 32px rgba(0,104,119,0.15), 0 2px 8px rgba(0,0,0,0.08);
-      --shadow-input:   0 1px 4px rgba(0,104,119,0.06);
-
-      --sidebar-width:  240px;
-      --header-height:  64px;
-    }
-
-    /* ------------------------------------------------------------------ */
-    /* Reset & Base                                                          */
-    /* ------------------------------------------------------------------ */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'Inter', -apple-system, sans-serif;
-      background: var(--surface-page);
-      color: var(--text-primary);
-      line-height: 1.6;
-      min-height: 100vh;
-    }
-
-    /* ------------------------------------------------------------------ */
-    /* Layout Shell                                                          */
-    /* ------------------------------------------------------------------ */
-    .layout {
-      display: flex;
-      min-height: 100vh;
-    }
-
-    /* ------------------------------------------------------------------ */
-    /* Sidebar                                                              */
-    /* ------------------------------------------------------------------ */
-    .sidebar {
-      width: var(--sidebar-width);
-      background: var(--surface-sidebar);
-      display: flex;
-      flex-direction: column;
-      position: fixed;
-      top: 0; left: 0; bottom: 0;
-      z-index: 100;
-    }
-
-    .sidebar-logo {
-      padding: 28px 24px 20px;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-
-    .sidebar-logo .wordmark {
-      font-family: 'Newsreader', Georgia, serif;
-      font-size: 1.35rem;
-      font-weight: 600;
-      color: #ffffff;
-      letter-spacing: -0.02em;
-      display: block;
-    }
-
-    .sidebar-logo .sub {
-      font-size: 0.7rem;
-      font-weight: 500;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--teal-light);
-      margin-top: 2px;
-      display: block;
-    }
-
-    .sidebar-nav {
-      flex: 1;
-      padding: 16px 12px;
-      overflow-y: auto;
-    }
-
-    .nav-section-label {
-      font-size: 0.65rem;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.3);
-      padding: 12px 12px 6px;
-    }
-
-    .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 12px;
-      border-radius: 10px;
-      color: var(--text-sidebar);
-      text-decoration: none;
-      font-size: 0.875rem;
-      font-weight: 400;
-      transition: background 0.15s, color 0.15s;
-      margin-bottom: 2px;
-    }
-
-    .nav-item:hover {
-      background: rgba(255,255,255,0.08);
-      color: var(--text-sidebar-active);
-    }
-
-    .nav-item.active {
-      background: var(--gradient-cta);
-      color: #ffffff;
-      font-weight: 500;
-      box-shadow: 0 4px 12px rgba(0,104,119,0.4);
-    }
-
-    .nav-icon {
-      width: 18px;
-      height: 18px;
-      opacity: 0.9;
-      flex-shrink: 0;
-    }
-
-    .nav-item.active .nav-icon { opacity: 1; }
-
-    .sidebar-footer {
-      padding: 16px 24px;
-      border-top: 1px solid rgba(255,255,255,0.06);
-    }
-
-    .sidebar-footer .version {
-      font-size: 0.7rem;
-      color: rgba(255,255,255,0.25);
-    }
-
-    /* ------------------------------------------------------------------ */
-    /* Main Content                                                         */
-    /* ------------------------------------------------------------------ */
-    .main {
-      margin-left: var(--sidebar-width);
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
-
-    /* Top header bar */
-    .topbar {
-      height: var(--header-height);
-      background: var(--surface-card);
-      display: flex;
-      align-items: center;
-      padding: 0 32px;
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      box-shadow: 0 1px 0 rgba(0,104,119,0.06);
-    }
-
-    .topbar-breadcrumb {
-      font-size: 0.8rem;
-      color: var(--text-secondary);
-    }
-
-    .topbar-breadcrumb .sep { margin: 0 8px; opacity: 0.4; }
-
-    .topbar-breadcrumb .current {
-      color: var(--text-primary);
-      font-weight: 500;
-    }
-
-    .topbar-spacer { flex: 1; }
-
-    .topbar-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 14px;
-      background: var(--teal-surface);
-      color: var(--teal-primary);
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-    }
-
-    .topbar-badge .dot {
-      width: 6px;
-      height: 6px;
-      background: var(--teal-primary);
-      border-radius: 50%;
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
-
-    /* Page content */
-    .page-content {
-      flex: 1;
-      padding: 32px;
-    }
-
-    .page-header {
-      margin-bottom: 28px;
-    }
-
-    .page-header h1 {
-      font-family: 'Newsreader', Georgia, serif;
-      font-size: 2rem;
-      font-weight: 500;
-      letter-spacing: -0.03em;
-      color: var(--text-primary);
-      line-height: 1.2;
-    }
-
-    .page-header .subtitle {
-      font-size: 0.875rem;
-      color: var(--text-secondary);
-      margin-top: 6px;
-    }
-
-    /* ------------------------------------------------------------------ */
-    /* Cards                                                                */
-    /* ------------------------------------------------------------------ */
-    .card {
-      background: var(--surface-card);
-      border-radius: var(--radius-card);
-      box-shadow: var(--shadow-card);
-      overflow: hidden;
-    }
-
-    .card-header {
-      padding: 20px 24px 0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .card-title {
-      font-size: 0.8rem;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: var(--text-secondary);
-    }
-
-    .card-body { padding: 20px 24px 24px; }
-
-    /* Metric card */
-    .metric-card {
-      background: var(--surface-card);
-      border-radius: var(--radius-card);
-      box-shadow: var(--shadow-card);
-      padding: 24px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .metric-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 3px;
-      background: var(--gradient-cta);
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-
-    .metric-card:hover::before { opacity: 1; }
-
-    .metric-label {
-      font-size: 0.72rem;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--text-secondary);
-      margin-bottom: 8px;
-    }
-
-    .metric-value {
-      font-family: 'Newsreader', Georgia, serif;
-      font-size: 2.4rem;
-      font-weight: 400;
-      letter-spacing: -0.04em;
-      color: var(--text-primary);
-      line-height: 1;
-    }
-
-    .metric-delta {
-      font-size: 0.75rem;
-      font-weight: 500;
-      margin-top: 6px;
-    }
-
-    .metric-delta.up { color: #059669; }
-    .metric-delta.down { color: #dc2626; }
-    .metric-delta.neutral { color: var(--text-muted); }
-
-    /* ------------------------------------------------------------------ */
-    /* Grids                                                                */
-    /* ------------------------------------------------------------------ */
-    .grid-4 {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 20px;
-    }
-
-    .grid-2 {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 20px;
-    }
-
-    .grid-3-1 {
-      display: grid;
-      grid-template-columns: 3fr 1fr;
-      gap: 20px;
-    }
-
-    .mt-20 { margin-top: 20px; }
-    .mt-28 { margin-top: 28px; }
-
-    /* ------------------------------------------------------------------ */
-    /* Tables                                                               */
-    /* ------------------------------------------------------------------ */
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    .data-table thead th {
-      padding: 12px 16px;
-      font-size: 0.7rem;
-      font-weight: 600;
-      letter-spacing: 0.07em;
-      text-transform: uppercase;
-      color: var(--text-secondary);
-      text-align: left;
-      background: var(--surface-row);
-      border-bottom: 1px solid rgba(0,104,119,0.08);
-    }
-
-    .data-table tbody tr:nth-child(even) td { background: var(--surface-row); }
-    .data-table tbody tr:nth-child(odd) td  { background: var(--surface-card); }
-
-    .data-table tbody tr:hover td {
-      background: var(--teal-hover);
-      transition: background 0.1s;
-    }
-
-    .data-table tbody td {
-      padding: 12px 16px;
-      font-size: 0.875rem;
-      color: var(--text-primary);
-      border-bottom: 1px solid rgba(0,104,119,0.04);
+    body { font-family: 'Roboto', sans-serif; }
+    .font-headline { font-family: 'Newsreader', serif; }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
       vertical-align: middle;
     }
-
-    .data-table tbody tr:last-child td { border-bottom: none; }
-
-    /* ------------------------------------------------------------------ */
-    /* Badges                                                               */
-    /* ------------------------------------------------------------------ */
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 3px 10px;
-      border-radius: var(--radius-badge);
-      font-size: 0.72rem;
-      font-weight: 600;
-      letter-spacing: 0.03em;
-      white-space: nowrap;
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #dae4e7; border-radius: 10px; }
 
+    /* Badge classes for backward compat with filter output */
+    .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.03em; white-space: nowrap; text-transform: uppercase; }
     .badge-booking      { background: #d1fae5; color: #065f46; }
     .badge-escalated    { background: #fef3c7; color: #92400e; }
     .badge-unanswered   { background: #fee2e2; color: #991b1b; }
@@ -417,302 +112,102 @@
     .badge-other        { background: #f1f5f9; color: #64748b; }
     .badge-duplicate    { background: #fae8ff; color: #7e22ce; }
 
-    /* ------------------------------------------------------------------ */
-    /* Forms / Filters                                                      */
-    /* ------------------------------------------------------------------ */
-    .filter-bar {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      padding: 16px 20px;
-      background: var(--surface-row);
-      border-bottom: 1px solid rgba(0,104,119,0.06);
-    }
+    /* SMS status indicators */
+    .sms-ok   { color: #059669; font-weight: 600; font-size: 0.82rem; }
+    .sms-warn { color: #d97706; font-weight: 600; font-size: 0.82rem; }
+    .sms-na   { color: #a9b4b6; font-size: 0.82rem; }
 
-    .filter-bar input,
-    .filter-bar select {
-      border: none;
-      background: var(--surface-card);
-      padding: 8px 14px;
-      border-radius: var(--radius-input);
-      font-size: 0.875rem;
-      font-family: 'Inter', sans-serif;
-      color: var(--text-primary);
-      box-shadow: var(--shadow-input);
-      outline: none;
-    }
-
-    .filter-bar input:focus,
-    .filter-bar select:focus {
-      box-shadow: 0 0 0 2px var(--teal-light);
-    }
-
-    .filter-bar input { min-width: 240px; }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 16px;
-      border-radius: var(--radius-input);
-      font-size: 0.875rem;
-      font-weight: 500;
-      font-family: 'Inter', sans-serif;
-      cursor: pointer;
-      border: none;
-      transition: opacity 0.15s, transform 0.1s;
-      text-decoration: none;
-    }
-
-    .btn:hover { opacity: 0.88; transform: translateY(-1px); }
-    .btn:active { transform: translateY(0); }
-
-    .btn-primary {
-      background: var(--gradient-cta);
-      color: #ffffff;
-      box-shadow: 0 4px 12px rgba(0,104,119,0.3);
-    }
-
-    .btn-ghost {
-      background: transparent;
-      color: var(--teal-primary);
-      box-shadow: inset 0 0 0 1.5px var(--teal-primary);
-    }
-
-    /* ------------------------------------------------------------------ */
-    /* Pagination                                                           */
-    /* ------------------------------------------------------------------ */
-    .pagination {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      padding: 16px 20px;
-      background: var(--surface-row);
-      border-top: 1px solid rgba(0,104,119,0.06);
-      font-size: 0.8rem;
-    }
-
-    .pagination a,
-    .pagination span {
-      padding: 6px 12px;
-      border-radius: 8px;
-      color: var(--text-secondary);
-      text-decoration: none;
-      background: var(--surface-card);
-      box-shadow: var(--shadow-input);
-      transition: background 0.15s;
-    }
-
-    .pagination a:hover { background: var(--teal-hover); color: var(--teal-primary); }
-
-    .pagination .pg-active {
-      background: var(--gradient-cta);
-      color: #ffffff;
-      box-shadow: 0 2px 8px rgba(0,104,119,0.3);
-    }
-
-    .pagination .pg-info {
-      background: none;
-      box-shadow: none;
-      color: var(--text-muted);
-      margin-left: 8px;
-    }
-
-    /* ------------------------------------------------------------------ */
-    /* Detail page                                                          */
-    /* ------------------------------------------------------------------ */
-    .detail-grid {
-      display: grid;
-      grid-template-columns: 180px 1fr;
-      gap: 0;
-    }
-
-    .detail-row {
-      display: contents;
-    }
-
-    .detail-row .dl {
-      padding: 12px 16px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: var(--text-secondary);
-      background: var(--surface-row);
-      border-bottom: 1px solid rgba(0,104,119,0.05);
-      display: flex;
-      align-items: center;
-    }
-
-    .detail-row .dv {
-      padding: 12px 16px;
-      font-size: 0.875rem;
-      color: var(--text-primary);
-      background: var(--surface-card);
-      border-bottom: 1px solid rgba(0,104,119,0.05);
-      display: flex;
-      align-items: center;
-    }
-
-    .transcript-box {
-      background: var(--surface-page);
-      border-radius: 12px;
-      padding: 20px 24px;
-      font-size: 0.875rem;
-      line-height: 1.75;
-      color: var(--text-primary);
-      white-space: pre-wrap;
-      max-height: 500px;
-      overflow-y: auto;
-    }
-
-    .transcript-box .agent-line  { color: var(--teal-primary); font-weight: 500; }
-    .transcript-box .patient-line { color: var(--text-primary); }
-
-    .ai-summary-block {
-      background: var(--teal-surface);
-      border-left: 3px solid var(--teal-primary);
-      border-radius: 0 12px 12px 0;
-      padding: 16px 20px;
-      font-size: 0.875rem;
-      color: var(--teal-primary);
-      line-height: 1.65;
-    }
-
-    /* ------------------------------------------------------------------ */
-    /* Links                                                                */
-    /* ------------------------------------------------------------------ */
-    a.row-link {
-      color: var(--teal-primary);
-      text-decoration: none;
-      font-weight: 500;
-    }
-
-    a.row-link:hover { text-decoration: underline; }
-
-    .back-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      color: var(--text-secondary);
-      font-size: 0.875rem;
-      text-decoration: none;
-      margin-bottom: 24px;
-      transition: color 0.15s;
-    }
-
-    .back-link:hover { color: var(--teal-primary); }
-
-    /* ------------------------------------------------------------------ */
-    /* Empty state                                                          */
-    /* ------------------------------------------------------------------ */
-    .empty-state {
-      text-align: center;
-      padding: 64px 32px;
-      color: var(--text-muted);
-    }
-
-    .empty-state .empty-icon {
-      font-size: 3rem;
-      margin-bottom: 16px;
-      opacity: 0.4;
-    }
-
-    .empty-state p {
-      font-size: 0.875rem;
-      margin-top: 8px;
-    }
-
-    /* ------------------------------------------------------------------ */
-    /* SMS status indicators                                                */
-    /* ------------------------------------------------------------------ */
-    .sms-ok   { color: #059669; font-weight: 500; font-size: 0.82rem; }
-    .sms-warn { color: #d97706; font-weight: 500; font-size: 0.82rem; }
-    .sms-na   { color: var(--text-muted); font-size: 0.82rem; }
-
-    /* ------------------------------------------------------------------ */
-    /* Chart containers                                                     */
-    /* ------------------------------------------------------------------ */
-    .chart-wrap {
-      position: relative;
-      height: 240px;
-    }
-
-    .chart-wrap-sm {
-      position: relative;
-      height: 180px;
-    }
+    /* Transcript coloring */
+    .agent-line  { color: #026978; font-weight: 600; }
+    .patient-line { color: #2a3436; }
   </style>
 
   {% block head %}{% endblock %}
 </head>
-<body>
-<div class="layout">
+<body class="bg-surface text-on-surface selection:bg-primary-container selection:text-on-primary-container">
 
-  <!-- Sidebar -->
-  <nav class="sidebar">
-    <div class="sidebar-logo">
-      <span class="wordmark">VoiceIQ</span>
-      <span class="sub">Admin Console</span>
+<!-- Fixed Sidebar -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-slate-100 flex flex-col p-4 z-50">
+  <!-- Logo -->
+  <div class="mb-8 px-2 flex items-center gap-3">
+    <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-on-primary">
+      <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">voice_selection</span>
     </div>
-
-    <div class="sidebar-nav">
-      <div class="nav-section-label">Overview</div>
-
-      <a href="/admin/" class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
-        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M2 10.5a8.5 8.5 0 1 1 17 0H2zm8.5-4.25a.75.75 0 0 0-1.5 0v4.25H5.25a.75.75 0 0 0 0 1.5H10a.75.75 0 0 0 .75-.75V6.25z"/>
-        </svg>
-        Dashboard
-      </a>
-
-      <div class="nav-section-label" style="margin-top:12px">Calls</div>
-
-      <a href="/admin/calls" class="nav-item {% if active_page == 'calls' %}active{% endif %}">
-        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M2 3.5A1.5 1.5 0 0 1 3.5 2h1.148a1.5 1.5 0 0 1 1.465 1.175l.716 3.223a1.5 1.5 0 0 1-1.052 1.767l-.933.267c-.41.117-.643.555-.48.95a11.542 11.542 0 0 0 6.254 6.254c.395.163.833-.07.95-.48l.267-.933a1.5 1.5 0 0 1 1.767-1.052l3.223.716A1.5 1.5 0 0 1 18 15.352V16.5a1.5 1.5 0 0 1-1.5 1.5H15c-1.149 0-2.263-.15-3.326-.43A13.022 13.022 0 0 1 2.43 8.326 13.019 13.019 0 0 1 2 5V3.5z" clip-rule="evenodd"/>
-        </svg>
-        Call Log
-      </a>
-
-      <div class="nav-section-label" style="margin-top:12px">Analytics</div>
-
-      <a href="/admin/analytics" class="nav-item {% if active_page == 'analytics' %}active{% endif %}">
-        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M15.5 2A1.5 1.5 0 0 0 14 3.5v13a1.5 1.5 0 0 0 3 0v-13A1.5 1.5 0 0 0 15.5 2zm-5 4A1.5 1.5 0 0 0 9 7.5v9a1.5 1.5 0 0 0 3 0v-9A1.5 1.5 0 0 0 10.5 6zm-5 4A1.5 1.5 0 0 0 4 11.5v5a1.5 1.5 0 0 0 3 0v-5A1.5 1.5 0 0 0 5.5 10z"/>
-        </svg>
-        Analytics
-      </a>
-    </div>
-
-    <div class="sidebar-footer">
-      <div class="version">v0.1 · VoiceIQ Platform</div>
-    </div>
-  </nav>
-
-  <!-- Main -->
-  <div class="main">
-    <!-- Topbar -->
-    <header class="topbar">
-      <div class="topbar-breadcrumb">
-        <span>Admin</span>
-        <span class="sep">›</span>
-        <span class="current">{% block breadcrumb %}Dashboard{% endblock %}</span>
-      </div>
-      <div class="topbar-spacer"></div>
-      <div class="topbar-badge">
-        <div class="dot"></div>
-        Live
-      </div>
-    </header>
-
-    <!-- Page content -->
-    <main class="page-content">
-      {% block content %}{% endblock %}
-    </main>
+    <span class="font-headline text-2xl font-bold text-[#006877]">VoiceIQ</span>
   </div>
 
-</div>
+  <!-- Main Nav -->
+  <nav class="flex-1 flex flex-col gap-1">
+    <a href="/admin/" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {% if active_page == 'dashboard' %}text-[#006877] font-bold bg-white{% else %}text-slate-600 font-medium hover:bg-white/50{% endif %}">
+      <span class="material-symbols-outlined" {% if active_page == 'dashboard' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>dashboard</span>
+      <span class="text-sm">Dashboard</span>
+    </a>
+    <a href="/admin/calls" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {% if active_page == 'calls' %}text-[#006877] font-bold bg-white{% else %}text-slate-600 font-medium hover:bg-white/50{% endif %}">
+      <span class="material-symbols-outlined" {% if active_page == 'calls' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>call</span>
+      <span class="text-sm">Call Log</span>
+    </a>
+    <a href="/admin/queue" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {% if active_page == 'queue' %}text-[#006877] font-bold bg-white{% else %}text-slate-600 font-medium hover:bg-white/50{% endif %}">
+      <span class="material-symbols-outlined" {% if active_page == 'queue' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>assignment</span>
+      <span class="text-sm">Action Queue</span>
+    </a>
+    <a href="/admin/patients" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {% if active_page == 'patients' %}text-[#006877] font-bold bg-white{% else %}text-slate-600 font-medium hover:bg-white/50{% endif %}">
+      <span class="material-symbols-outlined" {% if active_page == 'patients' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>group</span>
+      <span class="text-sm">Patients</span>
+    </a>
+    <a href="/admin/analytics" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {% if active_page == 'analytics' %}text-[#006877] font-bold bg-white{% else %}text-slate-600 font-medium hover:bg-white/50{% endif %}">
+      <span class="material-symbols-outlined" {% if active_page == 'analytics' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>analytics</span>
+      <span class="text-sm">Analytics</span>
+    </a>
+  </nav>
+
+  <!-- Bottom Nav -->
+  <div class="mt-auto border-t border-slate-200/50 pt-4 flex flex-col gap-1">
+    <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-slate-600 font-medium hover:bg-white/50 rounded-lg transition-colors">
+      <span class="material-symbols-outlined">settings</span>
+      <span class="text-sm">Settings</span>
+    </a>
+    <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-slate-600 font-medium hover:bg-white/50 rounded-lg transition-colors">
+      <span class="material-symbols-outlined">help</span>
+      <span class="text-sm">Support</span>
+    </a>
+  </div>
+</aside>
+
+<!-- Fixed Topbar -->
+<header class="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 bg-white/80 backdrop-blur-md flex items-center justify-between px-8 z-40 shadow-sm shadow-slate-200/50">
+  <!-- Search -->
+  <div class="flex items-center flex-1 max-w-xl">
+    <div class="relative w-full">
+      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">search</span>
+      <input class="w-full pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-lg focus:ring-2 focus:ring-primary/20 text-sm transition-all" placeholder="Search enterprise data..." type="text">
+    </div>
+  </div>
+
+  <!-- Right actions -->
+  <div class="flex items-center gap-6">
+    <button class="text-slate-600 hover:text-[#006877] transition-all relative">
+      <span class="material-symbols-outlined">notifications</span>
+      <span class="absolute top-0 right-0 w-2 h-2 bg-error rounded-full"></span>
+    </button>
+    <button class="text-slate-600 hover:text-[#006877] transition-all">
+      <span class="material-symbols-outlined">help</span>
+    </button>
+    <div class="flex items-center gap-3 pl-6 border-l border-slate-200">
+      <div class="text-right hidden xl:block">
+        <p class="text-xs font-bold text-on-surface">Admin User</p>
+        <p class="text-[10px] text-on-surface-variant">Administrator</p>
+      </div>
+      <div class="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+        AU
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Main Content -->
+<main class="ml-64 pt-16 min-h-screen">
+  {% block content %}{% endblock %}
+</main>
 
 {% block scripts %}{% endblock %}
 </body>

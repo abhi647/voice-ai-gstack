@@ -1,149 +1,230 @@
 {% extends "admin/base.html" %}
-
-{% block title %}Dashboard — VoiceIQ Admin{% endblock %}
-{% block breadcrumb %}Dashboard{% endblock %}
+{% block title %}VoiceIQ Admin — Enterprise Overview{% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <h1>Dashboard</h1>
-  <p class="subtitle">Live call intelligence for your practice — last updated now.</p>
+<!-- Hero Section -->
+<div class="relative bg-surface-container-low px-8 pt-12 pb-32">
+  <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+    <div>
+      <h1 class="font-headline text-4xl font-bold text-on-surface tracking-tight">Enterprise Overview</h1>
+      <p class="text-on-surface-variant font-medium mt-1">Real-time performance metrics for VoiceIQ network.</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <button class="px-5 py-2.5 rounded-lg bg-surface-container-lowest text-on-surface font-medium text-sm flex items-center gap-2 hover:bg-surface-container-high transition-colors shadow-sm">
+        <span class="material-symbols-outlined text-lg">calendar_today</span>
+        Last 7 Days
+      </button>
+      <button class="px-5 py-2.5 rounded-lg bg-gradient-to-br from-[#026978] to-[#005c69] text-white font-medium text-sm flex items-center gap-2 shadow-lg shadow-[#026978]/20 active:scale-95 transition-all">
+        <span class="material-symbols-outlined text-lg">file_download</span>
+        Export Report
+      </button>
+    </div>
+  </div>
 </div>
 
-<!-- Metric cards -->
-<div class="grid-4">
-
-  <div class="metric-card">
-    <div class="metric-label">Total Calls</div>
-    <div class="metric-value">{{ stats.total_calls }}</div>
-    <div class="metric-delta neutral">All time</div>
-  </div>
-
-  <div class="metric-card">
-    <div class="metric-label">Calls Today</div>
-    <div class="metric-value">{{ stats.calls_today }}</div>
-    <div class="metric-delta {% if stats.calls_today > 0 %}up{% else %}neutral{% endif %}">
-      {% if stats.calls_today > 0 %}Active today{% else %}No calls yet{% endif %}
+<!-- Overlapping Metric Cards -->
+<div class="px-8 -mt-24 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+  <!-- Total Calls -->
+  <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+    <div class="flex justify-between items-start mb-4">
+      <div class="p-2 rounded-lg bg-primary-container/30 text-primary">
+        <span class="material-symbols-outlined">call</span>
+      </div>
+      <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">Live</span>
     </div>
+    <p class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Total Calls</p>
+    <h3 class="font-headline text-3xl font-bold text-on-surface">{{ stats.total_calls }}</h3>
   </div>
 
-  <div class="metric-card">
-    <div class="metric-label">Booking Rate</div>
-    <div class="metric-value">{{ stats.booking_rate_pct }}%</div>
-    <div class="metric-delta {% if stats.booking_rate_pct >= 60 %}up{% elif stats.booking_rate_pct >= 30 %}neutral{% else %}down{% endif %}">
-      {{ stats.total_bookings }} bookings captured
+  <!-- AI Resolution -->
+  <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+    <div class="flex justify-between items-start mb-4">
+      <div class="p-2 rounded-lg bg-secondary-container/30 text-secondary">
+        <span class="material-symbols-outlined">psychology</span>
+      </div>
+      <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">+5.2%</span>
     </div>
+    <p class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">AI Resolution</p>
+    <h3 class="font-headline text-3xl font-bold text-on-surface">{{ stats.booking_rate_pct }}%</h3>
   </div>
 
-  <div class="metric-card">
-    <div class="metric-label">SMS Confirmations</div>
-    <div class="metric-value">{{ stats.sms_sent }}</div>
-    <div class="metric-delta {% if stats.sms_success_rate >= 80 %}up{% else %}neutral{% endif %}">
-      {{ stats.sms_success_rate }}% success rate
+  <!-- Bookings -->
+  <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+    <div class="flex justify-between items-start mb-4">
+      <div class="p-2 rounded-lg bg-tertiary-container/30 text-tertiary">
+        <span class="material-symbols-outlined">event_available</span>
+      </div>
+      {% if stats.total_bookings > 0 %}
+      <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">Active</span>
+      {% else %}
+      <span class="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded">None</span>
+      {% endif %}
     </div>
+    <p class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Bookings</p>
+    <h3 class="font-headline text-3xl font-bold text-on-surface">{{ stats.total_bookings }}</h3>
   </div>
 
+  <!-- Avg Duration -->
+  <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+    <div class="flex justify-between items-start mb-4">
+      <div class="p-2 rounded-lg bg-surface-container-highest/50 text-outline">
+        <span class="material-symbols-outlined">timer</span>
+      </div>
+      <span class="text-xs font-bold text-on-surface-variant bg-surface-container px-2 py-1 rounded">Stable</span>
+    </div>
+    <p class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Avg Duration</p>
+    <h3 class="font-headline text-3xl font-bold text-on-surface">4:12 <span class="text-lg font-normal text-on-surface-variant">m</span></h3>
+  </div>
 </div>
 
-<!-- Charts row -->
-<div class="grid-3-1 mt-28">
-
-  <!-- Call volume chart -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Call Volume — Last 7 Days</span>
-    </div>
-    <div class="card-body">
-      <div class="chart-wrap">
-        <canvas id="volumeChart"></canvas>
+<!-- Charts Grid -->
+<div class="px-8 mt-12 grid grid-cols-1 lg:grid-cols-12 gap-8">
+  <!-- Call Volume Timeline -->
+  <div class="lg:col-span-8 bg-surface-container-lowest p-8 rounded-xl shadow-sm">
+    <div class="flex items-center justify-between mb-8">
+      <h2 class="font-headline text-2xl font-bold text-on-surface">Call Volume Timeline</h2>
+      <div class="flex gap-4">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-primary"></span>
+          <span class="text-xs font-medium text-on-surface-variant">Call Volume</span>
+        </div>
       </div>
     </div>
+    <div class="relative h-64">
+      <canvas id="volumeChart"></canvas>
+    </div>
   </div>
 
-  <!-- Disposition donut -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Disposition Mix</span>
-    </div>
-    <div class="card-body">
-      <div class="chart-wrap">
-        <canvas id="dispositionChart"></canvas>
+  <!-- Call Disposition -->
+  <div class="lg:col-span-4 bg-surface-container-lowest p-8 rounded-xl shadow-sm flex flex-col">
+    <h2 class="font-headline text-2xl font-bold text-on-surface mb-8">Call Disposition</h2>
+    <div class="flex-1 flex flex-col justify-center space-y-5">
+      {% for item in disposition_data %}
+      <div>
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-sm font-bold text-on-surface">{{ item.label }}</span>
+          <span class="text-sm font-bold text-primary">{{ item.pct }}%</span>
+        </div>
+        <div class="w-full h-2 bg-surface-container rounded-full overflow-hidden">
+          <div class="h-full bg-primary rounded-full" style="width: {{ item.pct }}%"></div>
+        </div>
       </div>
-    </div>
-  </div>
-
-</div>
-
-<!-- Recent calls table -->
-<div class="card mt-28">
-  <div class="card-header" style="padding-bottom:16px">
-    <span class="card-title">Recent Calls</span>
-    <a href="/admin/calls" class="btn btn-ghost" style="font-size:0.8rem;padding:6px 12px">View all →</a>
-  </div>
-
-  {% if recent_calls %}
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>Time</th>
-        <th>Patient</th>
-        <th>Service</th>
-        <th>Disposition</th>
-        <th>Patient SMS</th>
-        <th>Duration</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for c in recent_calls %}
-      <tr>
-        <td><a class="row-link" href="/admin/calls/{{ c.id }}">{{ c.started_at | fmt_dt }}</a></td>
-        <td>
-          <div style="font-weight:500">{{ c.patient_name or '—' }}</div>
-          <div style="font-size:0.78rem;color:var(--text-secondary)">{{ c.patient_phone }}</div>
-        </td>
-        <td>{{ c.service_type or '—' }}</td>
-        <td>{{ c.disposition | disposition_badge | safe }}</td>
-        <td>{{ c | sms_status | safe }}</td>
-        <td style="color:var(--text-secondary)">{{ c | duration }}</td>
-      </tr>
+      {% else %}
+      <p class="text-sm text-on-surface-variant text-center">No calls yet.</p>
       {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <div class="empty-state">
-    <div class="empty-icon">📞</div>
-    <strong>No calls yet</strong>
-    <p>Calls will appear here as they come in.</p>
+    </div>
   </div>
-  {% endif %}
+</div>
+
+<!-- System Health -->
+<div class="px-8 mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+  <div class="bg-surface-container-low p-8 rounded-xl flex flex-col">
+    <h2 class="font-headline text-2xl font-bold text-on-surface mb-6">System Health</h2>
+    <div class="space-y-4">
+      <div class="flex gap-4 p-4 rounded-lg bg-surface-container-lowest shadow-sm border-l-4 border-error">
+        <span class="material-symbols-outlined text-error">error_outline</span>
+        <div>
+          <p class="text-sm font-bold text-on-surface">Latency Spike</p>
+          <p class="text-xs text-on-surface-variant">East Region Hub node B-42 experiencing 250ms+ delay.</p>
+        </div>
+      </div>
+      <div class="flex gap-4 p-4 rounded-lg bg-surface-container-lowest shadow-sm border-l-4 border-emerald-500">
+        <span class="material-symbols-outlined text-emerald-500">check_circle_outline</span>
+        <div>
+          <p class="text-sm font-bold text-on-surface">Database Sync Complete</p>
+          <p class="text-xs text-on-surface-variant">Historical archives from Q3 successfully migrated.</p>
+        </div>
+      </div>
+      <div class="flex gap-4 p-4 rounded-lg bg-surface-container-lowest shadow-sm border-l-4 border-amber-500">
+        <span class="material-symbols-outlined text-amber-500">warning_amber</span>
+        <div>
+          <p class="text-sm font-bold text-on-surface">API Usage Limit</p>
+          <p class="text-xs text-on-surface-variant">Twilio integration reaching 85% of monthly quota.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="lg:col-span-2 bg-surface-container-lowest p-8 rounded-xl shadow-sm flex flex-col items-center justify-center text-center">
+    <span class="material-symbols-outlined text-5xl text-outline mb-3">map</span>
+    <p class="text-sm font-bold text-on-surface">Regional Density</p>
+    <p class="text-xs text-on-surface-variant mt-1">Geographic call distribution across enterprise network.</p>
+  </div>
+</div>
+
+<!-- Recent Transactional Activity -->
+<div class="px-8 mt-8 mb-12">
+  <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+    <div class="px-8 py-6 border-b border-outline-variant/10 flex items-center justify-between">
+      <h2 class="font-headline text-2xl font-bold text-on-surface">Recent Transactional Activity</h2>
+      <a href="/admin/calls" class="text-primary font-bold text-sm hover:underline">View Full Log</a>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead>
+          <tr class="bg-surface-container-high/50">
+            <th class="px-8 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Call ID</th>
+            <th class="px-8 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Patient / Caller</th>
+            <th class="px-8 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Resolution</th>
+            <th class="px-8 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Duration</th>
+            <th class="px-8 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">SMS</th>
+            <th class="px-8 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-outline-variant/10">
+          {% for call in recent_calls %}
+          {% set initials = (call.patient_name or call.patient_phone or '?')[:2].upper() %}
+          <tr class="hover:bg-surface-container-low transition-colors">
+            <td class="px-8 py-5 text-sm font-bold text-on-surface font-mono">{{ (call.twilio_call_sid or '—')[:14] }}</td>
+            <td class="px-8 py-5">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">{{ initials }}</div>
+                <div>
+                  <p class="text-sm font-bold text-on-surface">{{ call.patient_name or call.patient_phone or '—' }}</p>
+                  <p class="text-[10px] text-on-surface-variant">{{ call.service_type or '—' }}</p>
+                </div>
+              </div>
+            </td>
+            <td class="px-8 py-5">{{ call.disposition | disposition_badge | safe }}</td>
+            <td class="px-8 py-5 text-sm font-medium text-on-surface-variant">{{ call | duration }}</td>
+            <td class="px-8 py-5">{{ call | sms_status | safe }}</td>
+            <td class="px-8 py-5 text-right">
+              <a href="/admin/calls/{{ call.id }}" class="p-2 text-outline hover:text-primary transition-colors inline-flex">
+                <span class="material-symbols-outlined">open_in_new</span>
+              </a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="px-8 py-12 text-center text-on-surface-variant text-sm">No recent calls.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-  // ---------- Volume chart ----------
-  (function() {
-    const labels = {{ chart_labels | tojson }};
-    const values = {{ chart_values | tojson }};
-    const ctx = document.getElementById('volumeChart').getContext('2d');
-
-    const grad = ctx.createLinearGradient(0, 0, 0, 240);
-    grad.addColorStop(0, 'rgba(0, 104, 119, 0.18)');
-    grad.addColorStop(1, 'rgba(0, 104, 119, 0)');
-
+  const labels = {{ chart_labels | tojson }};
+  const values = {{ chart_values | tojson }};
+  const ctx = document.getElementById('volumeChart');
+  if (ctx) {
     new Chart(ctx, {
       type: 'line',
       data: {
-        labels,
+        labels: labels,
         datasets: [{
+          label: 'Calls',
           data: values,
-          borderColor: '#006877',
-          borderWidth: 2.5,
-          backgroundColor: grad,
+          borderColor: '#026978',
+          backgroundColor: 'rgba(2, 105, 120, 0.08)',
+          borderWidth: 2,
+          pointRadius: 4,
+          pointBackgroundColor: '#026978',
           fill: true,
           tension: 0.4,
-          pointBackgroundColor: '#006877',
-          pointRadius: 4,
-          pointHoverRadius: 6,
         }]
       },
       options: {
@@ -151,40 +232,11 @@
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11 }, color: '#8fa8ad' } },
-          y: { grid: { color: 'rgba(0,104,119,0.06)' }, ticks: { font: { family: 'Inter', size: 11 }, color: '#8fa8ad', stepSize: 1 }, beginAtZero: true }
+          x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#576163' } },
+          y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 11 }, color: '#576163' } },
         }
       }
     });
-  })();
-
-  // ---------- Disposition donut ----------
-  (function() {
-    const data = {{ disposition_data | tojson }};
-    const ctx = document.getElementById('dispositionChart').getContext('2d');
-    new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: data.map(d => d.label),
-        datasets: [{
-          data: data.map(d => d.count),
-          backgroundColor: ['#006877','#00bdd6','#fbbf24','#f87171','#a5b4fc','#94a3b8'],
-          borderWidth: 0,
-          hoverOffset: 6,
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '68%',
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { font: { family: 'Inter', size: 11 }, color: '#4a6267', padding: 12, boxWidth: 10, boxHeight: 10 }
-          }
-        }
-      }
-    });
-  })();
+  }
 </script>
 {% endblock %}

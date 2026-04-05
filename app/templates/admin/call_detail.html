@@ -1,160 +1,136 @@
 {% extends "admin/base.html" %}
-
 {% block title %}Call {{ call.twilio_call_sid }} — VoiceIQ Admin{% endblock %}
-{% block breadcrumb %}Call Detail{% endblock %}
 
 {% block content %}
-<a href="/admin/calls" class="back-link">
-  <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-    <path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10z" clip-rule="evenodd"/>
-  </svg>
-  Back to Call Log
-</a>
+<div class="px-8 pt-10 pb-12 max-w-5xl mx-auto">
+  <!-- Back link -->
+  <a href="/admin/calls" class="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors mb-8 text-sm font-medium">
+    <span class="material-symbols-outlined text-base">arrow_back</span>
+    Back to Call Log
+  </a>
 
-<div class="page-header">
-  <h1>Call Detail</h1>
-  <p class="subtitle">{{ call.twilio_call_sid }}</p>
-</div>
-
-<div class="grid-2">
-
-  <!-- Call metadata -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Call Information</span>
-    </div>
-    <div style="margin-top:16px">
-      <div class="detail-grid">
-
-        <div class="detail-row">
-          <div class="dl">Call SID</div>
-          <div class="dv" style="font-family:monospace;font-size:0.82rem">{{ call.twilio_call_sid }}</div>
-        </div>
-
-        <div class="detail-row">
-          <div class="dl">Disposition</div>
-          <div class="dv">{{ call.disposition | disposition_badge | safe }}</div>
-        </div>
-
-        <div class="detail-row">
-          <div class="dl">Started</div>
-          <div class="dv">{{ call.started_at | fmt_dt_full }}</div>
-        </div>
-
-        <div class="detail-row">
-          <div class="dl">Ended</div>
-          <div class="dv">{{ call.ended_at | fmt_dt_full }}</div>
-        </div>
-
-        <div class="detail-row">
-          <div class="dl">Duration</div>
-          <div class="dv">{{ call | duration }}</div>
-        </div>
-
-        <div class="detail-row">
-          <div class="dl">Patient Phone</div>
-          <div class="dv" style="font-weight:500">{{ call.patient_phone or '—' }}</div>
-        </div>
-
-        <div class="detail-row">
-          <div class="dl">Patient Name</div>
-          <div class="dv">{{ call.patient_name or '—' }}</div>
-        </div>
-
-        <div class="detail-row">
-          <div class="dl">Service Type</div>
-          <div class="dv">{{ call.service_type or '—' }}</div>
-        </div>
-
-        <div class="detail-row">
-          <div class="dl">Requested Time</div>
-          <div class="dv">{{ call.requested_time or '—' }}</div>
-        </div>
-
-        <div class="detail-row">
-          <div class="dl">Patient SMS</div>
-          <div class="dv">{{ call | sms_status | safe }}</div>
-        </div>
-
+  <!-- Patient Header -->
+  <div class="flex items-start justify-between mb-8">
+    <div class="flex items-center gap-6">
+      <!-- Avatar -->
+      <div class="w-20 h-20 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-headline text-3xl font-bold">
+        {{ (call.patient_name or call.patient_phone or '?')[:2].upper() }}
       </div>
-    </div>
-  </div>
-
-  <!-- Storage + timeline -->
-  <div style="display:flex;flex-direction:column;gap:20px">
-
-    <!-- Booking summary block -->
-    {% if call.disposition == 'BOOKING_CAPTURED' %}
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Booking Summary</span>
-      </div>
-      <div class="card-body">
-        <div class="ai-summary-block">
-          <strong>{{ call.patient_name or 'Patient' }}</strong> requested a
-          <strong>{{ call.service_type or 'visit' }}</strong>
-          {% if call.requested_time %}for <strong>{{ call.requested_time }}</strong>{% endif %}.
-          {% if call.sms_sent_at %}
-          Confirmation SMS sent at {{ call.sms_sent_at | fmt_dt_full }}.
-          {% else %}
-          No patient SMS sent.
+      <div>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="px-2 py-0.5 bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase tracking-wider rounded">Returning Patient</span>
+          {% if not call.ended_at %}
+          <span class="px-2 py-0.5 bg-primary-container text-on-primary-container text-[10px] font-bold uppercase tracking-wider rounded">Call Active</span>
           {% endif %}
         </div>
+        <h1 class="font-headline text-3xl font-bold text-on-surface mb-1">{{ call.patient_name or call.patient_phone or '—' }}</h1>
+        <p class="text-sm text-on-surface-variant font-mono">{{ call.twilio_call_sid or '—' }}</p>
       </div>
     </div>
-    {% endif %}
+    <div class="flex gap-3">
+      <button class="flex items-center gap-2 px-4 py-2.5 bg-surface-container-high text-on-surface font-bold rounded-lg text-sm hover:bg-surface-container-highest transition-colors">
+        <span class="material-symbols-outlined text-base">edit</span>
+        Edit Record
+      </button>
+      <button class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-br from-[#026978] to-[#005c69] text-white font-bold rounded-lg text-sm shadow-lg shadow-[#026978]/20 hover:scale-[1.02] transition-transform active:scale-95">
+        <span class="material-symbols-outlined text-base">calendar_add_on</span>
+        Schedule Follow-up
+      </button>
+    </div>
+  </div>
 
-    <!-- Storage keys -->
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Storage</span>
-      </div>
-      <div style="margin-top:16px">
-        <div class="detail-grid">
+  <!-- AI Clinical Summary -->
+  <div class="bg-primary-container/20 border-l-4 border-primary rounded-r-xl p-6 mb-8">
+    <div class="flex items-center gap-2 mb-3 text-on-primary-container">
+      <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+      <span class="text-xs font-bold uppercase tracking-widest">AI Clinical Summary</span>
+    </div>
+    <p class="font-headline italic text-lg leading-relaxed text-on-primary-container">
+      {% if call.transcript and call.transcript | wordcount > 5 %}
+        "{{ call.transcript[:300] }}{% if call.transcript | wordcount > 50 %}…{% endif %}"
+      {% else %}
+        "No AI summary available for this call. Transcript may not have been captured or is being processed."
+      {% endif %}
+    </p>
+  </div>
 
-          <div class="detail-row">
-            <div class="dl">Transcript</div>
-            <div class="dv" style="font-family:monospace;font-size:0.78rem;word-break:break-all">
-              {{ call.transcript_s3_key or '—' }}
-            </div>
-          </div>
-
-          <div class="detail-row">
-            <div class="dl">Audio</div>
-            <div class="dv" style="font-family:monospace;font-size:0.78rem;word-break:break-all">
-              {{ call.audio_s3_key or '—' }}
-            </div>
-          </div>
-
+  <!-- 2-Column Details Grid -->
+  <div class="grid grid-cols-2 gap-6 mb-8">
+    <!-- Booking Details -->
+    <div class="space-y-4">
+      <h3 class="text-xs font-bold text-outline uppercase tracking-widest">Booking Details</h3>
+      <div class="bg-surface-container-low p-4 rounded-lg space-y-3">
+        <div class="flex justify-between items-center">
+          <span class="text-xs text-on-surface-variant">Service</span>
+          <span class="text-xs font-bold">{{ call.service_type or '—' }}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-xs text-on-surface-variant">Requested Time</span>
+          <span class="text-xs font-bold">{{ call.requested_time or '—' }}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-xs text-on-surface-variant">Disposition</span>
+          <span class="text-xs font-bold">{{ call.disposition | disposition_badge | safe }}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-xs text-on-surface-variant">SMS Confirmation</span>
+          <span class="text-xs font-bold">{{ call | sms_status | safe }}</span>
         </div>
       </div>
     </div>
 
-  </div>
-
-</div>
-
-<!-- Transcript -->
-{% if call.transcript %}
-<div class="card mt-28">
-  <div class="card-header" style="padding-bottom:16px">
-    <span class="card-title">Transcript</span>
-    <span style="font-size:0.78rem;color:var(--text-muted)">{{ call.transcript | wordcount }} words</span>
-  </div>
-  <div class="card-body" style="padding-top:0">
-    <div class="transcript-box" id="transcript-box">{{ call.transcript | format_transcript | safe }}</div>
-  </div>
-</div>
-{% else %}
-<div class="card mt-28">
-  <div class="card-body">
-    <div class="empty-state" style="padding:32px">
-      <div class="empty-icon">📄</div>
-      <strong>No transcript available</strong>
-      <p>The transcript was not uploaded for this call.</p>
+    <!-- Call Metadata -->
+    <div class="space-y-4">
+      <h3 class="text-xs font-bold text-outline uppercase tracking-widest">Call Metadata</h3>
+      <div class="bg-surface-container-low p-4 rounded-lg space-y-3">
+        <div class="flex justify-between items-center">
+          <span class="text-xs text-on-surface-variant">Started</span>
+          <span class="text-xs font-bold">{{ call.started_at | fmt_dt_full }}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-xs text-on-surface-variant">Duration</span>
+          <span class="text-xs font-bold">{{ call | duration }}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-xs text-on-surface-variant">Phone</span>
+          <span class="text-xs font-bold">{{ call.patient_phone or '—' }}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-xs text-on-surface-variant">Recording</span>
+          <span class="text-xs font-bold">{% if call.audio_s3_key %}Available{% else %}Not available{% endif %}</span>
+        </div>
+      </div>
     </div>
   </div>
-</div>
-{% endif %}
 
+  <!-- Interaction Timeline -->
+  <div class="mb-8">
+    <h3 class="text-xs font-bold text-outline uppercase tracking-widest mb-4">Interaction Timeline</h3>
+    <div class="relative pt-2 pb-6">
+      <div class="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden flex">
+        <div class="h-full bg-primary-dim w-[15%]"></div>
+        <div class="h-full bg-tertiary w-[45%]"></div>
+        <div class="h-full bg-primary w-[30%]"></div>
+        <div class="h-full bg-primary-container w-[10%]"></div>
+      </div>
+      <div class="flex justify-between mt-3 text-[10px] text-outline font-medium">
+        <span>Started</span>
+        <span>In Progress</span>
+        <span>Completed</span>
+        <span>Closed</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transcript -->
+  {% if call.transcript %}
+  <div class="space-y-4 mb-8">
+    <div class="flex items-center justify-between">
+      <h3 class="text-xs font-bold text-outline uppercase tracking-widest">Transcript</h3>
+      <span class="text-[10px] text-on-surface-variant">{{ call.transcript | wordcount }} words</span>
+    </div>
+    <div class="font-mono text-xs leading-relaxed bg-surface-container-low p-6 rounded-xl max-h-96 overflow-y-auto custom-scrollbar whitespace-pre-wrap">{{ call.transcript | format_transcript | safe }}</div>
+  </div>
+  {% endif %}
+</div>
 {% endblock %}

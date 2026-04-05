@@ -1,0 +1,196 @@
+{% extends "admin/base.html" %}
+{% block title %}Patients — VoiceIQ Admin{% endblock %}
+
+{% block content %}
+<div class="px-8 pt-10 pb-12">
+  <!-- Patient Hero Section -->
+  <section class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+    <div class="flex items-center gap-8">
+      <!-- Avatar -->
+      <div class="relative">
+        <div class="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center text-primary font-headline text-4xl font-bold ring-4 ring-white shadow-xl shadow-slate-200">
+          {% if calls %}
+          {{ (calls[0].patient_name or calls[0].patient_phone or 'P')[:2].upper() }}
+          {% else %}
+          P
+          {% endif %}
+        </div>
+        <div class="absolute bottom-1 right-1 bg-primary w-8 h-8 rounded-full flex items-center justify-center border-2 border-white">
+          <span class="material-symbols-outlined text-white text-xs" style="font-variation-settings: 'FILL' 1;">verified</span>
+        </div>
+      </div>
+      <div>
+        <div class="flex items-center gap-3 mb-2">
+          <span class="px-3 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase tracking-widest rounded-lg">Returning Patient</span>
+          <span class="text-slate-400 text-sm">Patient Profiles</span>
+        </div>
+        <h1 class="font-headline text-5xl font-bold text-on-surface mb-2">
+          {% if calls %}
+          {{ calls[0].patient_name or calls[0].patient_phone or 'Unknown Patient' }}
+          {% else %}
+          Patient Directory
+          {% endif %}
+        </h1>
+        <div class="flex items-center gap-4 text-on-surface-variant">
+          <div class="flex items-center gap-1">
+            <span class="material-symbols-outlined text-sm">call</span>
+            <span class="text-sm">
+              {% if calls %}{{ calls[0].patient_phone or '—' }}{% else %}—{% endif %}
+            </span>
+          </div>
+          <div class="flex items-center gap-1">
+            <span class="material-symbols-outlined text-sm">history</span>
+            <span class="text-sm">{{ calls | length }} recent interactions</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="flex gap-3">
+      <button class="bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-bold px-6 py-2.5 rounded-lg text-sm transition-colors">
+        Edit Profile
+      </button>
+      <button class="bg-primary hover:bg-primary-dim text-white font-bold px-6 py-2.5 rounded-lg text-sm transition-all shadow-md shadow-primary/20">
+        Book Appointment
+      </button>
+    </div>
+  </section>
+
+  <!-- Metric Cards -->
+  <section class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+    <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+      <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Total Calls</p>
+      <div class="flex items-baseline gap-2">
+        <span class="font-headline text-4xl font-bold text-primary">{{ calls | length }}</span>
+      </div>
+      <p class="text-xs text-on-surface-variant mt-2">Recent interactions</p>
+    </div>
+    <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+      <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Bookings</p>
+      <div class="flex items-baseline gap-2">
+        <span class="font-headline text-4xl font-bold text-on-surface">
+          {% set booking_count = calls | selectattr('disposition', 'equalto', 'BOOKING_CAPTURED') | list | length %}
+          {{ booking_count }}
+        </span>
+      </div>
+      <div class="mt-3 flex gap-1">
+        {% for i in range(4) %}
+        <div class="h-1.5 flex-1 {% if i < booking_count %}bg-primary{% else %}bg-surface-container-high{% endif %} rounded-full"></div>
+        {% endfor %}
+      </div>
+      <p class="text-xs text-on-surface-variant mt-2">Appointments captured</p>
+    </div>
+    <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+      <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Preference</p>
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-secondary-container flex items-center justify-center">
+          <span class="material-symbols-outlined text-on-secondary-container">spa</span>
+        </div>
+        <div>
+          <span class="font-headline text-xl font-bold text-on-surface">Standard</span>
+          <p class="text-[10px] text-on-surface-variant uppercase">Requested service</p>
+        </div>
+      </div>
+    </div>
+    <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+      <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Time Pref</p>
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-tertiary-container flex items-center justify-center">
+          <span class="material-symbols-outlined text-on-tertiary-container">schedule</span>
+        </div>
+        <div>
+          <span class="font-headline text-xl font-bold text-on-surface">Flexible</span>
+          <p class="text-[10px] text-on-surface-variant uppercase">Based on history</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Asymmetric Layout -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+    <!-- Call History Table -->
+    <div class="lg:col-span-8">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="font-headline text-2xl font-bold">Call History</h2>
+        <a href="/admin/calls" class="text-primary text-sm font-bold flex items-center gap-1 hover:underline">
+          View Full Log <span class="material-symbols-outlined text-xs">arrow_forward</span>
+        </a>
+      </div>
+      <div class="space-y-3">
+        <!-- Header -->
+        <div class="grid grid-cols-12 px-6 py-3 bg-surface-container-high rounded-lg">
+          <div class="col-span-4 text-[10px] font-bold uppercase tracking-wider text-slate-500">Date &amp; Call</div>
+          <div class="col-span-4 text-[10px] font-bold uppercase tracking-wider text-slate-500">Service</div>
+          <div class="col-span-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Duration</div>
+          <div class="col-span-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 text-right">Status</div>
+        </div>
+        <!-- Rows -->
+        {% for call in calls[:10] %}
+        <a href="/admin/calls/{{ call.id }}" class="grid grid-cols-12 px-6 py-5 bg-surface-container-low hover:bg-surface-container-highest transition-colors rounded-xl items-center cursor-pointer no-underline">
+          <div class="col-span-4 flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-white flex items-center justify-center border border-slate-200">
+              <span class="material-symbols-outlined text-primary text-sm">call</span>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-on-surface">{{ call.started_at | fmt_dt }}</p>
+              <p class="text-[10px] text-on-surface-variant">{{ (call.twilio_call_sid or '—')[:12] }}</p>
+            </div>
+          </div>
+          <div class="col-span-4">
+            <span class="text-sm font-medium text-on-surface">{{ call.service_type or '—' }}</span>
+          </div>
+          <div class="col-span-2">
+            <span class="text-sm text-on-surface-variant">{{ call | duration }}</span>
+          </div>
+          <div class="col-span-2 text-right">
+            {{ call.disposition | disposition_badge | safe }}
+          </div>
+        </a>
+        {% else %}
+        <div class="px-6 py-12 text-center bg-surface-container-low rounded-xl">
+          <span class="material-symbols-outlined text-3xl text-outline mb-2">call_end</span>
+          <p class="text-sm text-on-surface-variant">No call history available.</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="lg:col-span-4 space-y-8">
+      <!-- Patient Sentiment -->
+      <div class="bg-[#026978] bg-opacity-5 p-8 rounded-xl relative overflow-hidden">
+        <div class="absolute top-0 right-0 p-4 opacity-10">
+          <span class="material-symbols-outlined text-6xl text-primary">lightbulb</span>
+        </div>
+        <h3 class="font-headline text-xl font-bold text-primary mb-4">Patient Sentiment</h3>
+        <p class="text-sm text-on-surface-variant leading-relaxed mb-6">
+          Based on call history, this patient shows <span class="font-bold text-primary">consistent engagement</span> with AI-assisted scheduling and prefers morning appointment slots.
+        </p>
+        <div class="flex items-center gap-4">
+          <div class="flex-1 h-2 bg-surface-container-highest rounded-full overflow-hidden">
+            <div class="w-[78%] h-full bg-primary"></div>
+          </div>
+          <span class="text-xs font-bold text-primary">78% Positive</span>
+        </div>
+      </div>
+
+      <!-- Internal Notes -->
+      <div class="bg-surface-container-lowest p-8 rounded-xl shadow-sm">
+        <h3 class="font-headline text-xl font-bold text-on-surface mb-6">Internal Notes</h3>
+        <div class="space-y-4">
+          <div class="p-4 bg-surface-container-low rounded-lg">
+            <p class="text-xs text-on-surface italic">"Patient prefers SMS confirmations over phone calls. Has missed 2 appointments when not reminded."</p>
+            <div class="mt-2 text-[10px] font-bold text-slate-400 uppercase">— Admin Note</div>
+          </div>
+          <div class="p-4 bg-surface-container-low rounded-lg">
+            <p class="text-xs text-on-surface italic">"Prefers morning scheduling, requests female agent when available."</p>
+            <div class="mt-2 text-[10px] font-bold text-slate-400 uppercase">— Agent Log</div>
+          </div>
+        </div>
+        <button class="w-full mt-6 py-2 border-2 border-dashed border-outline-variant text-outline font-bold text-xs rounded-lg hover:border-primary hover:text-primary transition-all">
+          + Add New Note
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

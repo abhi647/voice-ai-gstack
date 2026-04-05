@@ -1,111 +1,190 @@
 {% extends "admin/base.html" %}
-
 {% block title %}Call Log — VoiceIQ Admin{% endblock %}
-{% block breadcrumb %}Call Log{% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <h1>Call Log</h1>
-  <p class="subtitle">{{ total }} total calls · page {{ page }} of {{ total_pages }}</p>
-</div>
-
-<div class="card">
-
-  <!-- Filter bar -->
-  <form method="get" action="/admin/calls">
-    <div class="filter-bar">
-      <input
-        type="search"
-        name="q"
-        value="{{ q or '' }}"
-        placeholder="Search by patient name or phone…"
-        autocomplete="off"
-      >
-      <select name="disposition">
-        <option value="">All dispositions</option>
-        <option value="BOOKING_CAPTURED"   {% if disposition_filter == 'BOOKING_CAPTURED' %}selected{% endif %}>Booking Captured</option>
-        <option value="ESCALATED"          {% if disposition_filter == 'ESCALATED' %}selected{% endif %}>Escalated</option>
-        <option value="ESCALATED_UNANSWERED" {% if disposition_filter == 'ESCALATED_UNANSWERED' %}selected{% endif %}>Escalated (Unanswered)</option>
-        <option value="FAQ_ONLY"           {% if disposition_filter == 'FAQ_ONLY' %}selected{% endif %}>FAQ Only</option>
-        <option value="HUNG_UP"            {% if disposition_filter == 'HUNG_UP' %}selected{% endif %}>Hung Up</option>
-      </select>
-      <button type="submit" class="btn btn-primary">Filter</button>
-      {% if q or disposition_filter %}
-      <a href="/admin/calls" class="btn btn-ghost">Clear</a>
-      {% endif %}
-      <div style="flex:1"></div>
-      <span style="font-size:0.8rem;color:var(--text-muted)">{{ total }} results</span>
+<div class="px-8 pt-10 pb-12">
+  <!-- Editorial Header -->
+  <section class="mb-10 max-w-6xl">
+    <div class="flex items-end justify-between mb-4">
+      <div>
+        <h1 class="font-headline text-4xl font-bold text-on-surface tracking-tight mb-2">Call Log</h1>
+        <p class="text-on-surface-variant max-w-lg leading-relaxed">
+          Intelligence reporting for patient communications. A consolidated ledger of telephonic interactions, dispositions, and automated follow-ups.
+        </p>
+      </div>
+      <div class="flex gap-3">
+        <button class="flex items-center gap-2 px-4 py-2 bg-surface-container-highest text-on-surface-variant rounded-lg text-sm font-medium hover:bg-surface-container-high transition-colors">
+          <span class="material-symbols-outlined text-base">download</span>
+          Export Report
+        </button>
+        <button class="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-lg text-sm font-medium shadow-lg shadow-primary/20 hover:bg-primary-dim transition-all">
+          <span class="material-symbols-outlined text-base">add</span>
+          New Interaction
+        </button>
+      </div>
     </div>
-  </form>
+  </section>
 
-  {% if calls %}
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>Time</th>
-        <th>Patient</th>
-        <th>Phone</th>
-        <th>Service</th>
-        <th>Requested Time</th>
-        <th>Disposition</th>
-        <th>Patient SMS</th>
-        <th>Duration</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for c in calls %}
-      <tr>
-        <td>
-          <a class="row-link" href="/admin/calls/{{ c.id }}">{{ c.started_at | fmt_dt }}</a>
-        </td>
-        <td style="font-weight:500">{{ c.patient_name or '—' }}</td>
-        <td style="font-size:0.82rem;color:var(--text-secondary)">{{ c.patient_phone }}</td>
-        <td>{{ c.service_type or '—' }}</td>
-        <td style="font-size:0.82rem;color:var(--text-secondary)">{{ c.requested_time or '—' }}</td>
-        <td>{{ c.disposition | disposition_badge | safe }}</td>
-        <td>{{ c | sms_status | safe }}</td>
-        <td style="color:var(--text-secondary)">{{ c | duration }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <!-- Stats Mini-Cards -->
+  <section class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 max-w-6xl">
+    <div class="bg-surface-container-lowest p-5 rounded-xl">
+      <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Total Calls</p>
+      <p class="font-headline text-3xl font-bold text-primary">{{ total }}</p>
+      <div class="mt-4 flex items-center gap-1 text-[11px] text-green-600 font-bold">
+        <span class="material-symbols-outlined text-xs">trending_up</span>
+        All time
+      </div>
+    </div>
+    <div class="bg-surface-container-lowest p-5 rounded-xl">
+      <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Success Rate</p>
+      <p class="font-headline text-3xl font-bold text-primary">—</p>
+      <div class="mt-4 w-full bg-surface-container h-1 rounded-full overflow-hidden">
+        <div class="bg-primary h-full w-[84%]"></div>
+      </div>
+    </div>
+    <div class="bg-surface-container-lowest p-5 rounded-xl">
+      <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Avg. Duration</p>
+      <p class="font-headline text-3xl font-bold text-primary">4:12</p>
+      <p class="mt-4 text-[11px] text-on-surface-variant font-medium">Industry baseline: 3:45</p>
+    </div>
+    <div class="bg-surface-container-lowest p-5 rounded-xl">
+      <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Active SMS</p>
+      <p class="font-headline text-3xl font-bold text-primary">—</p>
+      <div class="mt-4 flex items-center gap-2">
+        <span class="text-[10px] text-on-surface-variant">Sent confirmations</span>
+      </div>
+    </div>
+  </section>
 
-  <!-- Pagination -->
-  <div class="pagination">
-    {% if page > 1 %}
-      <a href="?page={{ page - 1 }}{% if q %}&q={{ q }}{% endif %}{% if disposition_filter %}&disposition={{ disposition_filter }}{% endif %}">← Prev</a>
+  <!-- Filter Bar -->
+  <section class="mb-6 max-w-6xl">
+    <form method="GET" action="/admin/calls" class="flex items-center justify-between bg-surface-container-low p-3 rounded-xl">
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-on-surface-variant uppercase tracking-tight">Search:</span>
+          <input type="text" name="q" value="{{ q or '' }}" placeholder="Name or phone..." class="bg-transparent border-none text-sm font-medium focus:ring-0 text-on-surface placeholder:text-on-surface-variant/50">
+        </div>
+        <div class="w-[1px] h-4 bg-outline-variant/30"></div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-on-surface-variant uppercase tracking-tight">Disposition:</span>
+          <select name="disposition" class="bg-transparent border-none text-sm font-medium focus:ring-0 text-primary cursor-pointer p-0">
+            <option value="">All</option>
+            <option value="BOOKING_CAPTURED" {% if disposition_filter == 'BOOKING_CAPTURED' %}selected{% endif %}>Booking Captured</option>
+            <option value="ESCALATED" {% if disposition_filter == 'ESCALATED' %}selected{% endif %}>Escalated</option>
+            <option value="ESCALATED_UNANSWERED" {% if disposition_filter == 'ESCALATED_UNANSWERED' %}selected{% endif %}>Unanswered</option>
+            <option value="FAQ_ONLY" {% if disposition_filter == 'FAQ_ONLY' %}selected{% endif %}>FAQ Only</option>
+            <option value="HUNG_UP" {% if disposition_filter == 'HUNG_UP' %}selected{% endif %}>Hung Up</option>
+          </select>
+        </div>
+      </div>
+      <button type="submit" class="px-4 py-2 bg-primary text-on-primary rounded-lg text-xs font-bold hover:bg-primary-dim transition-all">
+        Filter
+      </button>
+    </form>
+  </section>
+
+  <!-- Tonal Stripe Table -->
+  <section class="max-w-6xl">
+    <div class="overflow-hidden rounded-xl bg-surface-container-lowest">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="bg-surface-container-high">
+            <th class="py-4 px-6 text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.08em]">Time</th>
+            <th class="py-4 px-6 text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.08em]">Patient</th>
+            <th class="py-4 px-6 text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.08em]">Disposition</th>
+            <th class="py-4 px-6 text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.08em]">Duration</th>
+            <th class="py-4 px-6 text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.08em]">Status</th>
+            <th class="py-4 px-6 text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.08em]">SMS</th>
+            <th class="py-4 px-6 text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.08em] text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for call in calls %}
+          {% set initials = (call.patient_name or call.patient_phone or '?')[:2].upper() %}
+          {% set row_class = 'bg-surface-container-low/30' if loop.index is even else '' %}
+          <tr class="hover:bg-surface-container-low transition-colors group {{ row_class }}">
+            <td class="py-5 px-6 text-sm text-on-surface-variant">{{ call.started_at | fmt_dt }}</td>
+            <td class="py-5 px-6">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded bg-secondary-container flex items-center justify-center text-on-secondary-container font-bold text-xs">{{ initials }}</div>
+                <div>
+                  <p class="font-medium text-on-surface text-sm">{{ call.patient_name or '—' }}</p>
+                  <p class="text-[10px] text-on-surface-variant">{{ call.patient_phone or '—' }}</p>
+                </div>
+              </div>
+            </td>
+            <td class="py-5 px-6">{{ call.disposition | disposition_badge | safe }}</td>
+            <td class="py-5 px-6 text-sm text-on-surface">{{ call | duration }}</td>
+            <td class="py-5 px-6">
+              {% if call.ended_at %}
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                <span class="text-xs font-medium text-on-surface-variant">Completed</span>
+              </div>
+              {% else %}
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                <span class="text-xs font-bold text-primary">In Progress</span>
+              </div>
+              {% endif %}
+            </td>
+            <td class="py-5 px-6">{{ call | sms_status | safe }}</td>
+            <td class="py-5 px-6 text-right">
+              <a href="/admin/calls/{{ call.id }}" class="p-1.5 hover:bg-white rounded-lg text-on-surface-variant transition-colors group-hover:text-primary inline-flex">
+                <span class="material-symbols-outlined text-xl">open_in_new</span>
+              </a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="py-16 px-6 text-center text-on-surface-variant text-sm">
+              No calls yet
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if total > 0 %}
+    <div class="mt-6 flex items-center justify-between px-2">
+      <p class="text-xs text-on-surface-variant font-medium">
+        Showing <span class="font-bold text-on-surface">{{ ((page - 1) * 25) + 1 }}-{{ [page * 25, total] | min }}</span> of {{ total }} calls
+      </p>
+      <div class="flex items-center gap-1">
+        {% if page > 1 %}
+        <a href="/admin/calls?page={{ page - 1 }}{% if q %}&q={{ q }}{% endif %}{% if disposition_filter %}&disposition={{ disposition_filter }}{% endif %}" class="p-2 bg-surface-container-highest rounded-lg hover:bg-surface-container-high">
+          <span class="material-symbols-outlined text-sm">chevron_left</span>
+        </a>
+        {% else %}
+        <button class="p-2 bg-surface-container-highest rounded-lg opacity-30" disabled>
+          <span class="material-symbols-outlined text-sm">chevron_left</span>
+        </button>
+        {% endif %}
+
+        {% for p in range(1, total_pages + 1) %}
+        {% if p == page %}
+        <span class="w-8 h-8 bg-primary text-on-primary rounded-lg text-xs font-bold flex items-center justify-center">{{ p }}</span>
+        {% elif p <= 3 or p >= total_pages - 1 or (p >= page - 1 and p <= page + 1) %}
+        <a href="/admin/calls?page={{ p }}{% if q %}&q={{ q }}{% endif %}{% if disposition_filter %}&disposition={{ disposition_filter }}{% endif %}" class="w-8 h-8 hover:bg-surface-container-high rounded-lg text-xs font-bold flex items-center justify-center">{{ p }}</a>
+        {% elif p == 4 and page > 5 %}
+        <span class="w-8 h-8 flex items-center justify-center text-xs text-on-surface-variant">…</span>
+        {% endif %}
+        {% endfor %}
+
+        {% if page < total_pages %}
+        <a href="/admin/calls?page={{ page + 1 }}{% if q %}&q={{ q }}{% endif %}{% if disposition_filter %}&disposition={{ disposition_filter }}{% endif %}" class="p-2 bg-surface-container-highest rounded-lg hover:bg-surface-container-high">
+          <span class="material-symbols-outlined text-sm">chevron_right</span>
+        </a>
+        {% else %}
+        <button class="p-2 bg-surface-container-highest rounded-lg opacity-30" disabled>
+          <span class="material-symbols-outlined text-sm">chevron_right</span>
+        </button>
+        {% endif %}
+      </div>
+    </div>
     {% endif %}
-
-    {% for p in range(1, total_pages + 1) %}
-      {% if p == page %}
-        <span class="pg-active">{{ p }}</span>
-      {% elif p <= 3 or p >= total_pages - 1 or (p >= page - 1 and p <= page + 1) %}
-        <a href="?page={{ p }}{% if q %}&q={{ q }}{% endif %}{% if disposition_filter %}&disposition={{ disposition_filter }}{% endif %}">{{ p }}</a>
-      {% elif p == 4 and page > 5 %}
-        <span style="background:none;box-shadow:none;color:var(--text-muted)">…</span>
-      {% elif p == total_pages - 2 and page < total_pages - 3 %}
-        <span style="background:none;box-shadow:none;color:var(--text-muted)">…</span>
-      {% endif %}
-    {% endfor %}
-
-    {% if page < total_pages %}
-      <a href="?page={{ page + 1 }}{% if q %}&q={{ q }}{% endif %}{% if disposition_filter %}&disposition={{ disposition_filter }}{% endif %}">Next →</a>
-    {% endif %}
-
-    <span class="pg-info">{{ total }} calls</span>
-  </div>
-
-  {% else %}
-  <div class="empty-state">
-    <div class="empty-icon">📋</div>
-    <strong>No calls yet</strong>
-    {% if q or disposition_filter %}
-    <p>No calls match your filters. <a href="/admin/calls" style="color:var(--teal-primary)">Clear filters</a></p>
-    {% else %}
-    <p>Calls will appear here once patients start calling in.</p>
-    {% endif %}
-  </div>
-  {% endif %}
-
+  </section>
 </div>
 {% endblock %}

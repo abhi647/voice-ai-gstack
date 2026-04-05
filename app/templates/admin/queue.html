@@ -1,0 +1,142 @@
+{% extends "admin/base.html" %}
+{% block title %}Action Queue — VoiceIQ Admin{% endblock %}
+
+{% block content %}
+<div class="px-12 pt-10 pb-12">
+  <!-- Hero Header -->
+  <div class="mb-12 flex justify-between items-end">
+    <div>
+      <h1 class="font-headline text-4xl font-bold text-on-surface tracking-tight">Action Queue</h1>
+      <p class="text-on-surface-variant mt-2 font-medium">Prioritized patient follow-ups and administrative tasks.</p>
+    </div>
+    <div class="flex gap-4">
+      <div class="bg-surface-container-low p-4 rounded-xl text-center min-w-[100px]">
+        <p class="text-xs font-bold text-outline-variant uppercase tracking-widest mb-1">Overdue</p>
+        <p class="font-headline text-2xl font-bold text-error">{{ overdue_count }}</p>
+      </div>
+      <div class="bg-surface-container-low p-4 rounded-xl text-center min-w-[100px]">
+        <p class="text-xs font-bold text-outline-variant uppercase tracking-widest mb-1">Pending</p>
+        <p class="font-headline text-2xl font-bold text-[#006877]">{{ pending_count }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="space-y-12">
+
+    <!-- Critical & Overdue Section -->
+    <section>
+      <div class="flex items-center gap-3 mb-6">
+        <h2 class="font-headline text-2xl font-bold">Critical &amp; Overdue</h2>
+        <span class="h-[2px] flex-1 bg-surface-container-high"></span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for call in overdue %}
+        {% set initials = (call.patient_name or call.patient_phone or '?')[:2].upper() %}
+        <div class="bg-surface-container-lowest border-l-[3px] border-error rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div class="flex justify-between items-start mb-4">
+            <div>
+              <span class="text-[10px] font-bold bg-error-container/20 text-error px-2 py-0.5 rounded uppercase tracking-tighter">Follow Up Required</span>
+              <h4 class="font-headline text-xl font-bold mt-1">{{ call.patient_name or call.patient_phone or '—' }}</h4>
+            </div>
+            <div class="text-right">
+              <p class="text-xs font-bold text-error">Overdue</p>
+              <p class="text-[10px] text-outline-variant">{{ call.twilio_call_sid[:10] if call.twilio_call_sid else '—' }}</p>
+            </div>
+          </div>
+          <p class="text-sm text-on-surface-variant mb-6 leading-relaxed">
+            Booking captured but SMS confirmation not sent. Patient requires follow-up to confirm appointment details for
+            <strong>{{ call.service_type or 'scheduled service' }}</strong>.
+          </p>
+          <div class="flex items-center gap-3">
+            <button class="bg-gradient-to-br from-[#026978] to-[#005c69] text-on-primary text-xs font-bold py-2.5 px-6 rounded-lg flex items-center gap-2">
+              <span class="material-symbols-outlined text-sm">call</span>
+              Call Now
+            </button>
+            <button class="bg-secondary-container text-on-secondary-container text-xs font-bold py-2.5 px-4 rounded-lg">Confirmed</button>
+            <a href="/admin/calls/{{ call.id }}" class="text-primary text-xs font-bold py-2.5 px-4 rounded-lg hover:bg-primary/5 transition-colors">View Call</a>
+          </div>
+        </div>
+        {% else %}
+        <div class="col-span-2 bg-surface-container-low rounded-xl p-8 text-center">
+          <span class="material-symbols-outlined text-3xl text-outline mb-2">check_circle_outline</span>
+          <p class="text-sm font-bold text-on-surface">No overdue items</p>
+          <p class="text-xs text-on-surface-variant mt-1">All critical follow-ups are on track.</p>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Pending Actions Section -->
+    <section>
+      <div class="flex items-center gap-3 mb-6">
+        <h2 class="font-headline text-2xl font-bold">Pending Actions</h2>
+        <span class="h-[2px] flex-1 bg-surface-container-high"></span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {% for call in pending %}
+        {% set initials = (call.patient_name or call.patient_phone or '?')[:2].upper() %}
+        <div class="bg-surface-container-lowest border-l-[3px] border-orange-400 rounded-xl p-6 shadow-sm">
+          <span class="text-[10px] font-bold bg-orange-100 text-orange-700 px-2 py-0.5 rounded uppercase">Escalated</span>
+          <h4 class="font-headline text-lg font-bold mt-2">{{ call.patient_name or call.patient_phone or '—' }}</h4>
+          <p class="text-xs text-on-surface-variant mb-4 mt-1">{{ call.started_at | fmt_dt }}</p>
+          <p class="text-sm text-on-surface-variant mb-6 line-clamp-2">
+            Call escalated — requires human agent follow-up for {{ call.service_type or 'patient inquiry' }}.
+          </p>
+          <div class="flex flex-col gap-2">
+            <button class="bg-gradient-to-br from-[#026978] to-[#005c69] text-on-primary text-xs font-bold py-2 px-4 rounded-lg w-full">Call Now</button>
+            <a href="/admin/calls/{{ call.id }}" class="text-on-surface-variant text-xs font-bold py-2 px-4 rounded-lg border border-outline/10 text-center hover:border-primary hover:text-primary transition-all">View Details</a>
+          </div>
+        </div>
+        {% else %}
+        <div class="col-span-3 bg-surface-container-low rounded-xl p-8 text-center">
+          <span class="material-symbols-outlined text-3xl text-outline mb-2">assignment_turned_in</span>
+          <p class="text-sm font-bold text-on-surface">No pending actions</p>
+          <p class="text-xs text-on-surface-variant mt-1">The queue is clear.</p>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Done Today Section -->
+    <section>
+      <button id="done-toggle" class="w-full flex items-center justify-between p-6 bg-surface-container-low rounded-xl hover:bg-surface-container transition-colors">
+        <div class="flex items-center gap-4">
+          <span class="material-symbols-outlined text-primary-dim">check_circle</span>
+          <h3 class="font-headline text-xl font-bold">Done Today</h3>
+          <span class="text-xs font-bold text-outline-variant bg-surface-container-highest px-3 py-1 rounded-full">{{ done_today | length }} Completed</span>
+        </div>
+        <span class="material-symbols-outlined" id="done-chevron">expand_more</span>
+      </button>
+
+      <div id="done-list" class="hidden mt-4 px-6">
+        {% for call in done_today %}
+        <div class="flex justify-between py-3 border-b border-outline-variant/10">
+          <div class="flex items-center gap-3">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span class="text-sm font-medium">{{ call.patient_name or call.patient_phone or '—' }} — {{ call.disposition | replace('_', ' ') | title }}</span>
+          </div>
+          <span class="text-xs font-bold text-on-surface-variant">{{ call.started_at | fmt_dt }}</span>
+        </div>
+        {% else %}
+        <p class="text-sm text-on-surface-variant py-4">No calls completed today.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const toggle = document.getElementById('done-toggle');
+  const list = document.getElementById('done-list');
+  const chevron = document.getElementById('done-chevron');
+  if (toggle) {
+    toggle.addEventListener('click', () => {
+      list.classList.toggle('hidden');
+      chevron.textContent = list.classList.contains('hidden') ? 'expand_more' : 'expand_less';
+    });
+  }
+</script>
+{% endblock %}

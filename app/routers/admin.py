@@ -313,6 +313,63 @@ async def call_detail(
 
 
 # ---------------------------------------------------------------------------
+# GET /admin/queue
+# ---------------------------------------------------------------------------
+
+@router.get("/queue", response_class=HTMLResponse)
+async def action_queue(request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    """Action Queue — calls needing follow-up."""
+    result = await db.execute(select(Call).order_by(desc(Call.started_at)))
+    all_calls = list(result.scalars().all())
+
+    now = datetime.now(timezone.utc)
+    overdue = [c for c in all_calls
+               if (c.disposition or '').upper() == 'BOOKING_CAPTURED'
+               and not c.sms_sent_at
+               and c.started_at and (now - c.started_at) > timedelta(hours=1)][:2]
+
+    pending = [c for c in all_calls
+               if (c.disposition or '').upper() in ('ESCALATED', 'ESCALATED_UNANSWERED')][:3]
+
+    done_today = [c for c in all_calls
+                  if c.started_at and c.started_at.date() == now.date()
+                  and (c.disposition or '').upper() in ('BOOKING_CAPTURED', 'FAQ_ONLY')][:5]
+
+    return templates.TemplateResponse(
+        request,
+        "admin/queue.html",
+        context={
+            "active_page": "queue",
+            "overdue": overdue,
+            "pending": pending,
+            "done_today": done_today,
+            "overdue_count": len(overdue),
+            "pending_count": len(pending),
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# GET /admin/patients
+# ---------------------------------------------------------------------------
+
+@router.get("/patients", response_class=HTMLResponse)
+async def patients(request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    """Patient profiles — most recent callers."""
+    result = await db.execute(select(Call).order_by(desc(Call.started_at)).limit(50))
+    recent_calls = list(result.scalars().all())
+
+    return templates.TemplateResponse(
+        request,
+        "admin/patients.html",
+        context={
+            "active_page": "patients",
+            "calls": recent_calls,
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
 # GET /admin/analytics
 # ---------------------------------------------------------------------------
 

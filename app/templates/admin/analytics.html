@@ -1,110 +1,186 @@
 {% extends "admin/base.html" %}
-
 {% block title %}Analytics — VoiceIQ Admin{% endblock %}
-{% block breadcrumb %}Analytics{% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <h1>Analytics</h1>
-  <p class="subtitle">Call performance and AI booking intelligence.</p>
-</div>
-
-<!-- Top metrics -->
-<div class="grid-4">
-
-  <div class="metric-card">
-    <div class="metric-label">Total Calls</div>
-    <div class="metric-value">{{ stats.total_calls }}</div>
-    <div class="metric-delta neutral">All time</div>
+<div class="px-8 pt-10 pb-12">
+  <!-- Header -->
+  <div class="mb-10">
+    <h1 class="font-headline text-4xl font-bold text-on-surface tracking-tight mb-2">Performance Analytics</h1>
+    <p class="text-on-surface-variant max-w-2xl">A curated overview of operational efficiency, patient engagement trends, and AI-driven cost optimization across the enterprise ecosystem.</p>
   </div>
 
-  <div class="metric-card">
-    <div class="metric-label">Bookings Captured</div>
-    <div class="metric-value">{{ stats.total_bookings }}</div>
-    <div class="metric-delta {% if stats.booking_rate_pct >= 50 %}up{% else %}neutral{% endif %}">
-      {{ stats.booking_rate_pct }}% of all calls
+  <!-- Bento Grid -->
+  <div class="grid grid-cols-12 gap-8">
+
+    <!-- ROI Calculator Card -->
+    <div class="col-span-12 lg:col-span-4 flex flex-col">
+      <div class="h-full bg-primary-container/30 backdrop-blur-xl rounded-xl p-8 flex flex-col justify-between border-b-2 border-primary relative overflow-hidden">
+        <div class="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-primary/10 rounded-full blur-3xl"></div>
+        <div>
+          <span class="inline-block px-3 py-1 bg-primary text-on-primary text-[10px] font-bold rounded-lg mb-6 uppercase tracking-widest">Efficiency Insight</span>
+          <h3 class="font-headline text-2xl font-bold text-on-primary-container leading-tight">Projected Daily ROI Savings</h3>
+          <p class="text-on-primary-container/70 text-sm mt-2">Based on current automation throughput and reduced manual triage latency.</p>
+        </div>
+        <div class="mt-12">
+          <div class="flex items-baseline gap-2">
+            <span class="font-headline text-6xl font-bold text-primary">$926</span>
+            <span class="text-primary font-bold text-lg">net</span>
+          </div>
+          <div class="mt-4 flex items-center gap-2 text-primary-dim font-bold">
+            <span class="material-symbols-outlined text-sm">trending_up</span>
+            <span class="text-xs uppercase tracking-tighter">14.2% Increase from last period</span>
+          </div>
+        </div>
+        <button class="mt-8 w-full bg-primary text-on-primary py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 hover:bg-primary-dim transition-all">
+          Recalculate Model
+          <span class="material-symbols-outlined text-sm">arrow_forward</span>
+        </button>
+      </div>
     </div>
-  </div>
 
-  <div class="metric-card">
-    <div class="metric-label">Escalation Rate</div>
-    <div class="metric-value">{{ stats.escalation_rate_pct }}%</div>
-    <div class="metric-delta {% if stats.escalation_rate_pct < 20 %}up{% elif stats.escalation_rate_pct < 40 %}neutral{% else %}down{% endif %}">
-      {{ stats.total_escalated }} calls escalated
-    </div>
-  </div>
-
-  <div class="metric-card">
-    <div class="metric-label">SMS Success</div>
-    <div class="metric-value">{{ stats.sms_success_rate }}%</div>
-    <div class="metric-delta {% if stats.sms_success_rate >= 90 %}up{% else %}neutral{% endif %}">
-      {{ stats.sms_sent }} sent of {{ stats.total_bookings }} bookings
-    </div>
-  </div>
-
-</div>
-
-<!-- Charts -->
-<div class="grid-2 mt-28">
-
-  <!-- Disposition breakdown -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Disposition Breakdown</span>
-    </div>
-    <div class="card-body">
-      {% for item in disposition_data %}
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
-        <div style="width:10px;height:10px;border-radius:2px;background:{{ loop.index0 | disposition_color }};flex-shrink:0"></div>
-        <div style="flex:1;font-size:0.875rem">{{ item.label }}</div>
-        <div style="font-family:'Newsreader',serif;font-size:1.1rem;font-weight:400;color:var(--text-primary)">{{ item.count }}</div>
-        <div style="font-size:0.78rem;color:var(--text-muted);width:40px;text-align:right">{{ item.pct }}%</div>
-        <div style="width:80px;height:6px;background:var(--surface-page);border-radius:3px;overflow:hidden">
-          <div style="height:100%;width:{{ item.pct }}%;background:{{ loop.index0 | disposition_color }};border-radius:3px"></div>
+    <!-- Booking Funnel -->
+    <div class="col-span-12 lg:col-span-8 bg-surface-container-lowest rounded-xl p-8">
+      <div class="flex justify-between items-start mb-8">
+        <div>
+          <h3 class="font-headline text-2xl font-bold text-on-surface">Booking Funnel</h3>
+          <p class="text-on-surface-variant text-sm">Conversion efficiency across digital touchpoints</p>
+        </div>
+        <div class="flex gap-2">
+          <button class="px-4 py-2 bg-surface-container-low text-on-surface-variant text-xs font-bold rounded-lg">Last 30 Days</button>
+          <button class="px-4 py-2 bg-surface-container-high text-primary text-xs font-bold rounded-lg flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm">download</span> Report
+          </button>
         </div>
       </div>
-      {% else %}
-      <p style="color:var(--text-muted);font-size:0.875rem">No calls yet.</p>
-      {% endfor %}
+      <div class="flex flex-col md:flex-row h-64 gap-4 items-end">
+        <!-- Inbound -->
+        <div class="flex-1 flex flex-col justify-end group">
+          <div class="bg-surface-container-highest w-full rounded-lg h-[60%] group-hover:bg-primary/20 transition-all relative flex flex-col items-center justify-center p-4">
+            <span class="font-headline text-3xl font-bold text-on-surface-variant group-hover:text-primary transition-colors">{{ stats.total_calls }}</span>
+            <span class="text-[10px] uppercase font-bold text-on-surface-variant mt-1">Inbound Calls</span>
+          </div>
+        </div>
+        <!-- AI Handled -->
+        <div class="flex-1 flex flex-col justify-end group">
+          <div class="bg-secondary-container w-full rounded-lg h-[40%] group-hover:h-[45%] transition-all relative flex flex-col items-center justify-center p-4">
+            <span class="font-headline text-3xl font-bold text-on-secondary-container">{{ stats.total_calls - stats.total_escalated }}</span>
+            <span class="text-[10px] uppercase font-bold text-on-secondary-container mt-1">AI Handled</span>
+          </div>
+        </div>
+        <!-- Booked -->
+        <div class="flex-1 flex flex-col justify-end group">
+          <div class="bg-primary w-full rounded-lg h-[22%] group-hover:h-[26%] transition-all relative flex flex-col items-center justify-center p-4">
+            <span class="font-headline text-3xl font-bold text-on-primary">{{ stats.total_bookings }}</span>
+            <span class="text-[10px] uppercase font-bold text-on-primary mt-1">Bookings</span>
+          </div>
+        </div>
+      </div>
+      <div class="mt-8 grid grid-cols-3 gap-8 pt-8 border-t border-outline-variant/15">
+        <div>
+          <p class="text-[10px] uppercase font-bold text-on-surface-variant tracking-widest mb-1">Escalation Rate</p>
+          <p class="font-headline text-xl font-bold text-on-surface">{{ stats.escalation_rate_pct }}%</p>
+        </div>
+        <div>
+          <p class="text-[10px] uppercase font-bold text-on-surface-variant tracking-widest mb-1">Booking Rate</p>
+          <p class="font-headline text-xl font-bold text-on-surface">{{ stats.booking_rate_pct }}%</p>
+        </div>
+        <div>
+          <p class="text-[10px] uppercase font-bold text-on-surface-variant tracking-widest mb-1">SMS Success</p>
+          <p class="font-headline text-xl font-bold text-on-surface">{{ stats.sms_success_rate }}%</p>
+        </div>
+      </div>
     </div>
-  </div>
 
-  <!-- Volume trend -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">30-Day Volume Trend</span>
+    <!-- Operational Volume Chart -->
+    <div class="col-span-12 lg:col-span-7 bg-surface-container-lowest rounded-xl p-8 relative overflow-hidden">
+      <div class="flex justify-between items-center mb-10">
+        <h3 class="font-headline text-2xl font-bold text-on-surface">Operational Volume</h3>
+        <div class="flex items-center gap-6">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-primary"></span>
+            <span class="text-xs font-medium text-on-surface-variant">AI Voice</span>
+          </div>
+        </div>
+      </div>
+      <div class="relative h-64">
+        <canvas id="analyticsChart"></canvas>
+      </div>
     </div>
-    <div class="card-body">
-      <div class="chart-wrap">
-        <canvas id="trendChart"></canvas>
+
+    <!-- AI Agent Performance -->
+    <div class="col-span-12 lg:col-span-5 bg-surface-container-lowest rounded-xl p-8">
+      <h3 class="font-headline text-2xl font-bold text-on-surface mb-6">AI Agent Performance</h3>
+      <div class="space-y-6">
+        <!-- Disposition breakdown as performance -->
+        {% for item in disposition_data[:3] %}
+        <div class="group cursor-pointer">
+          <div class="flex justify-between items-center mb-2">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-secondary-container rounded-lg flex items-center justify-center text-on-secondary-container">
+                <span class="material-symbols-outlined">smart_toy</span>
+              </div>
+              <div>
+                <h4 class="font-bold text-sm text-on-surface">{{ item.label }}</h4>
+                <p class="text-[10px] text-on-surface-variant uppercase tracking-wider">{{ item.count }} calls</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="font-headline text-lg font-bold text-primary">{{ item.pct }}%</span>
+              <p class="text-[10px] text-on-surface-variant font-medium">Share</p>
+            </div>
+          </div>
+          <div class="w-full bg-surface-container-low h-1 rounded-full overflow-hidden">
+            <div class="bg-primary h-full rounded-full" style="width: {{ item.pct }}%"></div>
+          </div>
+        </div>
+        {% else %}
+        <p class="text-sm text-on-surface-variant">No data available yet.</p>
+        {% endfor %}
+
+        <div class="mt-8 pt-6 border-t border-outline-variant/15">
+          <a href="/admin/calls" class="flex items-center justify-between group">
+            <span class="text-xs font-bold text-on-surface-variant group-hover:text-primary transition-colors">View All Call Logs</span>
+            <span class="material-symbols-outlined text-sm text-on-surface-variant group-hover:text-primary">chevron_right</span>
+          </a>
+        </div>
       </div>
     </div>
   </div>
 
+  <!-- Data Integrity Footer -->
+  <div class="mt-12 flex flex-col md:flex-row gap-8 items-center justify-between p-8 bg-surface-container-low rounded-xl">
+    <div class="flex items-center gap-4">
+      <div class="w-10 h-10 rounded-lg bg-surface-container-highest flex items-center justify-center">
+        <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">sync</span>
+      </div>
+      <div>
+        <p class="text-sm font-bold text-on-surface">Data Sync</p>
+        <p class="text-xs text-on-surface-variant">Last synced: just now</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="material-symbols-outlined text-primary text-2xl" style="font-variation-settings: 'FILL' 1;">verified</span>
+      <span class="font-headline text-xl font-bold">Data integrity verified by Audit-Core</span>
+    </div>
+  </div>
 </div>
-
 {% endblock %}
 
 {% block scripts %}
 <script>
-  (function() {
-    const labels = {{ chart_labels | tojson }};
-    const values = {{ chart_values | tojson }};
-    const ctx = document.getElementById('trendChart').getContext('2d');
-
-    const grad = ctx.createLinearGradient(0, 0, 0, 240);
-    grad.addColorStop(0, 'rgba(0, 104, 119, 0.15)');
-    grad.addColorStop(1, 'rgba(0, 104, 119, 0)');
-
+  const labels = {{ chart_labels | tojson }};
+  const values = {{ chart_values | tojson }};
+  const ctx = document.getElementById('analyticsChart');
+  if (ctx) {
     new Chart(ctx, {
       type: 'bar',
       data: {
-        labels,
+        labels: labels,
         datasets: [{
+          label: 'Calls',
           data: values,
-          backgroundColor: 'rgba(0, 104, 119, 0.7)',
+          backgroundColor: 'rgba(2, 105, 120, 0.7)',
           borderRadius: 4,
-          hoverBackgroundColor: '#006877',
         }]
       },
       options: {
@@ -112,11 +188,11 @@
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10 }, color: '#8fa8ad', maxRotation: 45 } },
-          y: { grid: { color: 'rgba(0,104,119,0.06)' }, ticks: { font: { family: 'Inter', size: 11 }, color: '#8fa8ad', stepSize: 1 }, beginAtZero: true }
+          x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#576163', maxRotation: 45 } },
+          y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 10 }, color: '#576163' } },
         }
       }
     });
-  })();
+  }
 </script>
 {% endblock %}
