@@ -50,6 +50,50 @@ class NotifyAdapter:
             message=f"Staff notified via {' + '.join(channels)}",
         )
 
+    async def send_booking_confirmation_sms(self, req: BookingRequest) -> bool:
+        """
+        Text the *patient* to confirm their booking request was received.
+
+        Example: "Hi Jane! Your appointment request at Sunrise Dental has been
+        received. We'll call you to confirm the slot. Questions? Call us at +1..."
+
+        Returns True on success, False on failure (non-raising).
+        """
+        if not req.patient_phone:
+            return False
+
+        if not settings.twilio_account_sid or not settings.twilio_auth_token:
+            logger.warning("Twilio not configured — skipping patient confirmation SMS")
+            return False
+
+        if not settings.twilio_sms_from:
+            logger.warning("twilio_sms_from not configured — skipping patient confirmation SMS")
+            return False
+
+        name_part = f"Hi {req.patient_name.split()[0]}! " if req.patient_name else ""
+        service_part = f" for {req.service_type}" if req.service_type else ""
+        time_part = f" around {req.requested_time}" if req.requested_time else ""
+        body = (
+            f"{name_part}Your appointment request{service_part}{time_part} at "
+            f"{req.practice_name} has been received. "
+            f"We'll call you shortly to confirm your slot. "
+            f"Ref: {req.call_sid}"
+        )
+
+        try:
+            from twilio.rest import Client
+            client = Client(settings.twilio_account_sid, settings.twilio_auth_token)
+            client.messages.create(
+                to=req.patient_phone,
+                from_=settings.twilio_sms_from,
+                body=body,
+            )
+            logger.info(f"Patient confirmation SMS sent to {req.patient_phone} for call {req.call_sid}")
+            return True
+        except Exception as e:
+            logger.error(f"Patient confirmation SMS failed for {req.call_sid}: {e}")
+            return False
+
     async def _send_sms(self, req: BookingRequest) -> bool:
         """
         Send an SMS to the practice's escalation number via Twilio.

@@ -299,6 +299,15 @@ async def finalize_call(req: FinalizeCallRequest, db: AsyncSession = Depends(get
             f"success={booking_result.success}, {booking_result.message}"
         )
 
+        # Patient-facing confirmation SMS — sent for all booking captures regardless
+        # of which EHR adapter was used for staff notification.
+        from app.ehr.notify import NotifyAdapter
+        notify = NotifyAdapter()
+        patient_sms_ok = await notify.send_booking_confirmation_sms(booking_req)
+        if patient_sms_ok:
+            call.sms_sent_at = datetime.now(timezone.utc)
+            await db.commit()
+
     logger.info(f"Call {req.call_sid} finalized — id={call.id}, disposition={req.disposition}")
     return {
         "status": "ok",
